@@ -4,11 +4,13 @@ The comparison points in my corpus are that that the study playlist has more of 
 There is definitely a well-known difference between the two playlists, because otherwise people would not use them. People usually use study playlists intentionally, knowing they want to increase their focus. Party playlists are usually used when people want to get in a party mood, or they will be used on a party itself. 
 As said earlier, what would be definitely typical about the study playlist is the instrumental aspect. Also, they would have rather 'calm' music that would not easily distract you from what you are trying to focus on. In a party playlist you will probably find less of those calm and bland songs. (Which obviously depends on the chosen playlist). The party playlist will have rather songs with more instruments, a high presence of a bass and even remixes.
 
-![Fig 2](https://github.com/SarahAbdalla97/Musicology/blob/main/energy_histogramplot.png) 
+![Fig 1](https://github.com/SarahAbdalla97/Musicology/blob/main/energy_histogramplot.png) 
 
 Energy/Count Histogram
 
 The difference in energy distribution between party and study music is very well shown in this histogram. Study music its energy has a bigger distribution on the lower side of the enrgy, where the party music has its bigger distribution on the higher energy side. The most common count for party music, is almost the least common count for study music and vice versa. 
+
+![Fig 2](https://github.com/SarahAbdalla97/Musicology/blob/main/energy_majorminorplot.png) 
 
 Energy/Valence Scatter Plot
 
