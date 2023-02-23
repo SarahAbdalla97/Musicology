@@ -1,32 +1,138 @@
 ---
 title: "index"
-author: "Sarah"
+author: "Sarah Abdalla"
 date: "2023-02-22"
 output: 
   flexdashboard::flex_dashboard:
     storyboard: true
 ---
+Analysis {.storyboard}
+=========================================
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(spotifyr)
+library(dplyr)
 ```
 
-## R Markdown
+```{r include = FALSE}
+Sys.setenv(SPOTIFY_CLIENT_ID='239b94521e814f92891b93465c76c8d9')
+Sys.setenv(SPOTIFY_CLIENT_SECRET='51d5be40f19a4feb8a37f3938c118b34')
+access_token <- get_spotify_access_token()
+playlist_studymusic <- "37i9dQZF1DWZeS4XzRgJG0?si=95ccd97c08744837"
+playlist_partymusic <- "37i9dQZF1DWSOb6VfKLO9H?si=452dac80d76948b1"
+studymusicfeatures <- get_playlist_audio_features("", playlist_studymusic)
+partymusicfeatures <- get_playlist_audio_features("", playlist_partymusic)
+music <-
+  bind_rows(
+    studymusicfeatures |> mutate(category = "Study Music Features"),
+    partymusicfeatures |> mutate(category = "Party Music Features")
+  )
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
 ```
 
-## Including Plots
+### Introduction
 
-You can also embed plots, for example:
+#### Introduction
+
+The corpus I have chosen includes two different playlists. One playlist is made to be a study playlist, that would include music that is supposed to let you have a great focus in order to be studying well. The other playlist would be a party playlist, one that is made for parties to increase people their energy. I chose it because I always try to use study playlists when I realize that I am having a bit of trouble trying to stay focused while studying. I want to find out through research whether there would be a measurable difference between the two different playlists. I think what is very interesting about this research, would be to find out what is the exact thing that makes you feel more focused, and what the exact thing is that increases your energy when listening to a party playlist.
+The comparison points in my corpus are that that the study playlist has more of instrumental and calm music, where the party playlist includes songs with much more energy, and much more intense instruments. I expect the two playlists to be somewhere similar, because in some way they are trying to increase something in the human brain (focus in playlist 1, and energy in playlist 2). Something I definitely do not expect similar in the two playlists is the sort of vibe the two playlists include. 
+There is definitely a well-known difference between the two playlists, because otherwise people would not use them. People usually use study playlists intentionally, knowing they want to increase their focus. Party playlists are usually used when people want to get in a party mood, or they will be used on a party itself. 
+As said earlier, what would be definitely typical about the study playlist is the instrumental aspect. Also, they would have rather 'calm' music that would not easily distract you from what you are trying to focus on. In a party playlist you will probably find less of those calm and bland songs. (Which obviously depends on the chosen playlist). The party playlist will have rather songs with more instruments, a high presence of a bass and even remixes.
+
+
+### Visualisation
+
+#### Plot 1
 
 ```{r pressure, echo=FALSE}
-plot(pressure)
+music |>
+  ggplot(aes(x = energy)) +
+  geom_histogram(binwidth = 0.1) +
+  facet_wrap(~category) + 
+  ggtitle("Energy against count histogram for study and party music")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+The difference in energy distribution between party and study music is very well shown in this histogram. Study music its energy has a bigger distribution on the lower side of the enrgy, where the party music has its bigger distribution on the higher energy side. The most common count for party music, is almost the least common count for study music and vice versa. 
+
+#### Plot 2 
+
+```{r , echo=FALSE}
+
+music |>                    # Start with awards.
+  mutate(
+    mode = ifelse(mode == 0, "Minor", "Major")
+  ) |>
+  ggplot(                     # Set up the plot.
+    aes(
+      x = valence,
+      y = energy,
+      size = loudness,
+      colour = mode
+    )
+  ) +
+  geom_point() +              # Scatter plot.
+  geom_rug(linewidth = 0.1) + # Add 'fringes' to show data distribution.
+  geom_text(                  # Add text labels from above.
+    aes(
+      x = valence,
+      y = energy,
+      label = label
+    ),
+    data = 
+      tibble(
+        label = c("calm", "busy"),
+        category = c("Study Music Features", "Party Music Features"),
+        valence = c(0.090, 0.123),
+        energy = c(0.101, 0.967)
+      ),
+    colour = "black",         # Override colour (not mode here).
+    size = 3,                 # Override size (not loudness here).
+    hjust = "left",           # Align left side of label with the point.
+    vjust = "bottom",         # Align bottom of label with the point.
+    nudge_x = -0.05,          # Nudge the label slightly left.
+    nudge_y = 0.02            # Nudge the label slightly up.
+  ) +
+  facet_wrap(~ category) +    # Separate charts per playlist.
+  scale_x_continuous(         # Fine-tune the x axis.
+    limits = c(0, 1),
+    breaks = c(0, 0.50, 1),   # Use grid-lines for quadrants only.
+    minor_breaks = NULL       # Remove 'minor' grid-lines.
+  ) +
+  scale_y_continuous(         # Fine-tune the y axis in the same way.
+    limits = c(0, 1),
+    breaks = c(0, 0.50, 1),
+    minor_breaks = NULL
+  ) +
+  scale_colour_brewer(        # Use the Color Brewer to choose a palette.
+    type = "qual",            # Qualitative set.
+    palette = "Paired"        # Name of the palette is 'Paired'.
+  ) +
+  scale_size_continuous(      # Fine-tune the sizes of each point.
+    trans = "exp",            # Use an exp transformation to emphasise loud.
+    guide = "none"            # Remove the legend for size.
+  ) +
+  theme_light() +             # Use a simpler theme.
+  labs(                       # Make the titles nice.
+    x = "Valence",
+    y = "Energy",
+    colour = "Mode",
+    title = "Energy and valence for party and study music"
+  )
+
+```
+
+As expected, for the party music the energy level is concentrated higher than for study music. Also, the party music is more concentrated towards the higher valence side, and the study music is more concentrated towards the lower valence side. This makes sense, because most study music are slow songs, and slow songs are often linked to sad songs. Low valence songs indicate more towards sadness, where high valence songs indicate more towards happiness. Study music has more majors in its plot, and party music has more minors in its plot. Something that is interesting to see is that party music includes more minors, which also seem to be slightly bigger, and study music includes more majors, which seem to be slighty smaller. Minors have more darker sounds, and majors have more of brighter sounds. 
+
+### Conclusion
+
+##### Conclusion
+
+lala
+
+### Discussion
+
+#### Discussion
+
+lala
