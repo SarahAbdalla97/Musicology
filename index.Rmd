@@ -11,17 +11,20 @@ Analysis {.storyboard}
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+remotes::install_github('jaburgoyne/compmus')
 library(tidyverse)
 library(spotifyr)
 library(dplyr)
+library(ggplot2)
+library(compmus)
 ```
 
 ```{r include = FALSE}
 Sys.setenv(SPOTIFY_CLIENT_ID='239b94521e814f92891b93465c76c8d9')
 Sys.setenv(SPOTIFY_CLIENT_SECRET='51d5be40f19a4feb8a37f3938c118b34')
 access_token <- get_spotify_access_token()
-playlist_studymusic <- "37i9dQZF1DWZeS4XzRgJG0?si=95ccd97c08744837"
-playlist_partymusic <- "37i9dQZF1DWSOb6VfKLO9H?si=452dac80d76948b1"
+playlist_studymusic <- "663NfS5wple5xvRUy0aj7s?si=d0a2d31141e64d1f"
+playlist_partymusic <- "4aY6uMZsFEtbxJIAoJItnt?si=1b003f9614044890"
 studymusicfeatures <- get_playlist_audio_features("", playlist_studymusic)
 partymusicfeatures <- get_playlist_audio_features("", playlist_partymusic)
 music <-
@@ -125,11 +128,63 @@ music |>                    # Start with awards.
 
 As expected, for the party music the energy level is concentrated higher than for study music. Also, the party music is more concentrated towards the higher valence side, and the study music is more concentrated towards the lower valence side. This makes sense, because most study music are slow songs, and slow songs are often linked to sad songs. Low valence songs indicate more towards sadness, where high valence songs indicate more towards happiness. Study music has more majors in its plot, and party music has more minors in its plot. Something that is interesting to see is that party music includes more minors, which also seem to be slightly bigger, and study music includes more majors, which seem to be slighty smaller. Minors have more darker sounds, and majors have more of brighter sounds. 
 
+#### Chromagram 1
+```{r , echo=FALSE}
+music <-
+  get_tidy_audio_analysis("4ZLzoOkj0MPWrTLvooIuaa?si=100d76873adf4534") |>
+  select(segments) |>
+  unnest(segments) |>
+  select(start, duration, pitches)
+
+music |>
+  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) |>
+  compmus_gather_chroma() |> 
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = pitch_class,
+      fill = value
+    )
+  ) + ggtitle("Chromagram for party music outlier") + 
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  theme_minimal() +
+  scale_fill_viridis_c()
+```
+
+This is the chromagram for the outlier from the party music playlist. I used the song from the study music playlist, and chose the song "Get You The Moon" by Kina and Snøw. 
+
+#### Chromagram 2
+```{r , echo=FALSE}
+music <-
+  get_tidy_audio_analysis("2iJuuzV8P9Yz0VSurttIV5?si=2f980a2d59604132") |>
+  select(segments) |>
+  unnest(segments) |>
+  select(start, duration, pitches)
+
+music |>
+  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) |>
+  compmus_gather_chroma() |> 
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = pitch_class,
+      fill = value
+    )
+  ) + ggtitle("Chromagram for study music outlier") + 
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  theme_minimal() +
+  scale_fill_viridis_c()
+```
+
+This is the chromagram for the outlier from the study music playlist. I used the song from the party music playlist, and chose the song "Scream & Shout" by will.i.am and Britney Spears.
+
 ### Conclusion
 
 ##### Conclusion
-
-lala
 
 ### Discussion
 

@@ -3,8 +3,8 @@ library(spotifyr)
 library(dplyr)
 # library(plotly)
 
-playlist_studymusic <- "37i9dQZF1DWZeS4XzRgJG0?si=95ccd97c08744837"
-playlist_partymusic <- "37i9dQZF1DWSOb6VfKLO9H?si=452dac80d76948b1"
+playlist_studymusic <- "663NfS5wple5xvRUy0aj7s?si=d0a2d31141e64d1f "
+playlist_partymusic <- "4aY6uMZsFEtbxJIAoJItnt?si=1b003f9614044890"
 studymusicfeatures <- get_playlist_audio_features("", playlist_studymusic)
 partymusicfeatures <- get_playlist_audio_features("", playlist_partymusic)
 
@@ -71,5 +71,7 @@ music |>                    # Start with awards.
   labs(                       # Make the titles nice.
     x = "Valence",
     y = "Energy",
-    colour = "Mode"
+    colour = "Mode",
+    title = "Energy and valence for party and study music"
   )
+
