@@ -1,10 +1,13 @@
 ---
 title: "index"
 author: "Sarah Abdalla"
-date: "2023-02-22"
+date: "2023-03-06"
 output: 
   flexdashboard::flex_dashboard:
     storyboard: true
+    theme: journal
+    self_contained: false
+    
 ---
 Analysis {.storyboard}
 =========================================
@@ -35,19 +38,12 @@ music <-
 
 ```
 
-### Introduction
-
-#### Introduction
-
-The corpus I have chosen includes two different playlists. One playlist is made to be a study playlist, that would include music that is supposed to let you have a great focus in order to be studying well. The other playlist would be a party playlist, one that is made for parties to increase people their energy. I chose it because I always try to use study playlists when I realize that I am having a bit of trouble trying to stay focused while studying. I want to find out through research whether there would be a measurable difference between the two different playlists. I think what is very interesting about this research, would be to find out what is the exact thing that makes you feel more focused, and what the exact thing is that increases your energy when listening to a party playlist.
-The comparison points in my corpus are that that the study playlist has more of instrumental and calm music, where the party playlist includes songs with much more energy, and much more intense instruments. I expect the two playlists to be somewhere similar, because in some way they are trying to increase something in the human brain (focus in playlist 1, and energy in playlist 2). Something I definitely do not expect similar in the two playlists is the sort of vibe the two playlists include. 
-There is definitely a well-known difference between the two playlists, because otherwise people would not use them. People usually use study playlists intentionally, knowing they want to increase their focus. Party playlists are usually used when people want to get in a party mood, or they will be used on a party itself. 
-As said earlier, what would be definitely typical about the study playlist is the instrumental aspect. Also, they would have rather 'calm' music that would not easily distract you from what you are trying to focus on. In a party playlist you will probably find less of those calm and bland songs. (Which obviously depends on the chosen playlist). The party playlist will have rather songs with more instruments, a high presence of a bass and even remixes.
-
 
 ### Visualisation
 
-#### Plot 1
+
+#### Histogram plot 
+
 
 ```{r pressure, echo=FALSE}
 music |>
@@ -59,7 +55,9 @@ music |>
 
 The difference in energy distribution between party and study music is very well shown in this histogram. Study music its energy has a bigger distribution on the lower side of the enrgy, where the party music has its bigger distribution on the higher energy side. The most common count for party music, is almost the least common count for study music and vice versa. 
 
-#### Plot 2 
+
+#### Energy and valence plot
+
 
 ```{r , echo=FALSE}
 
@@ -128,7 +126,10 @@ music |>                    # Start with awards.
 
 As expected, for the party music the energy level is concentrated higher than for study music. Also, the party music is more concentrated towards the higher valence side, and the study music is more concentrated towards the lower valence side. This makes sense, because most study music are slow songs, and slow songs are often linked to sad songs. Low valence songs indicate more towards sadness, where high valence songs indicate more towards happiness. Study music has more majors in its plot, and party music has more minors in its plot. Something that is interesting to see is that party music includes more minors, which also seem to be slightly bigger, and study music includes more majors, which seem to be slighty smaller. Minors have more darker sounds, and majors have more of brighter sounds. 
 
-#### Chromagram 1
+
+#### Chromagram for the party music outlier
+
+
 ```{r , echo=FALSE}
 music <-
   get_tidy_audio_analysis("4ZLzoOkj0MPWrTLvooIuaa?si=100d76873adf4534") |>
@@ -146,16 +147,19 @@ music |>
       y = pitch_class,
       fill = value
     )
-  ) + ggtitle("Chromagram for party music outlier") + 
+  ) + ggtitle("Chromagram for 'Get you to the moon -  Kina and Snøw'") + 
   geom_tile() +
   labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
   theme_minimal() +
   scale_fill_viridis_c()
 ```
 
-This is the chromagram for the outlier from the party music playlist. I used the song from the study music playlist, and chose the song "Get You The Moon" by Kina and Snøw. 
+This is the chromagram for the outlier from the party music playlist. I used the song from the study music playlist, and chose the song "Get You The Moon" by Kina and Snøw. This song starts very slow and monotonous. It only has a few sounds on the piano. From around 80 seconds until around 110 seconds, this changes, and more of the piano jumps in. From around 145 seconds these jump in again until the end. All of this is perceptible in the chromagram, because around these periods D pitches have a higher magnitude than over the rest of the song. 
 
-#### Chromagram 2
+
+#### Chromagram for the study music outlier
+
+
 ```{r , echo=FALSE}
 music <-
   get_tidy_audio_analysis("2iJuuzV8P9Yz0VSurttIV5?si=2f980a2d59604132") |>
@@ -173,7 +177,7 @@ music |>
       y = pitch_class,
       fill = value
     )
-  ) + ggtitle("Chromagram for study music outlier") + 
+  ) + ggtitle("Chromagram for 'Scream & Shout by will.i.am and Britney Spears'") + 
   geom_tile() +
   labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
   theme_minimal() +
@@ -182,6 +186,212 @@ music |>
 
 This is the chromagram for the outlier from the study music playlist. I used the song from the party music playlist, and chose the song "Scream & Shout" by will.i.am and Britney Spears.
 
+
+#### Ceptogram for the party music outlier
+
+
+```{r , echo=FALSE}
+
+music <-
+  get_tidy_audio_analysis("4ZLzoOkj0MPWrTLvooIuaa?si=100d76873adf4534") |> # Change URI.
+  compmus_align(bars, segments) |>                     # Change `bars`
+  select(bars) |>                                      #   in all three
+  unnest(bars) |>                                      #   of these lines.
+  mutate(
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = "rms", norm = "euclidean"              # Change summary & norm.
+      )
+  ) |>
+  mutate(
+    timbre =
+      map(segments,
+          compmus_summarise, timbre,
+          method = "rms", norm = "euclidean"              # Change summary & norm.
+      )
+  )
+
+music |>
+  compmus_gather_timbre() |>
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = basis,
+      fill = value
+    )
+  ) +
+  geom_tile() + ggtitle("Ceptogram for 'Get you to the moon -  Kina and Snøw'") +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  scale_fill_viridis_c() +                              
+  theme_classic()
+
+```
+
+This is the ceptogram for the outlier from the party music playlist. Here again I used the same outlier as for the chromagram for party music. I used the song from the study music playlist, and chose the song "Get You The Moon" by Kina and Snøw. 
+
+
+#### Ceptogram for the study music outlier 
+
+```{r , echo=FALSE}
+music <-
+  get_tidy_audio_analysis("2iJuuzV8P9Yz0VSurttIV5?si=2f980a2d59604132") |> # Change URI.
+  compmus_align(bars, segments) |>                     # Change `bars`
+  select(bars) |>                                      #   in all three
+  unnest(bars) |>                                      #   of these lines.
+  mutate(
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = "rms", norm = "euclidean"              # Change summary & norm.
+      )
+  ) |>
+  mutate(
+    timbre =
+      map(segments,
+          compmus_summarise, timbre,
+          method = "rms", norm = "euclidean"              # Change summary & norm.
+      )
+  )
+
+music |>
+  compmus_gather_timbre() |>
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = basis,
+      fill = value
+    )
+  ) +
+  geom_tile() + ggtitle("Ceptogram for 'Scream & Shout by will.i.am and Britney Spears'") + 
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  scale_fill_viridis_c() +                              
+  theme_classic()
+
+
+```
+
+This is the ceptogram for the outlier from the study music playlist. Here again, I have used the same outlier as for the chromagram for study music. I used the song from the party music playlist, and chose the song "Scream & Shout" by will.i.am and Britney Spears.
+
+
+#### Chroma VS timbre based matrices for party music
+
+```{r, echo=FALSE}
+music <-
+  get_tidy_audio_analysis("4TsmezEQVSZNNPv5RJ65Ov?si=468bdbdd8e9143a1") |>
+  compmus_align(bars, segments) |>
+  select(bars) |>
+  unnest(bars) |>
+  mutate(
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = "acentre", norm = "manhattan"
+      )
+  ) |>
+  mutate(
+    timbre =
+      map(segments,
+          compmus_summarise, timbre,
+          method = "mean"
+      )
+  )
+bind_rows(
+  music |> 
+    compmus_self_similarity(pitches, "aitchison") |> 
+    mutate(d = d / max(d), type = "Chroma"),
+  music |> 
+    compmus_self_similarity(timbre, "euclidean") |> 
+    mutate(d = d / max(d), type = "Timbre")
+) |>
+  mutate() |> 
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) + ggtitle("Chroma vs timber based matrices for 'Pon de Replay - Rihanna'") + 
+  geom_tile() +
+  coord_fixed() +
+  facet_wrap(~type) +
+  scale_fill_viridis_c(option = "E", guide = "none") +
+  theme_classic() + 
+  labs(x = "", y = "")
+```
+
+These two matrices are the chroma vs timber based matrices for "Pon de Replay" by Rihanna. The matrices illustrate pitch- and timbre-based self-similarity in this song. These are needed to understand the structure of the song.
+
+
+#### Chroma VS timbre based matrices for study music
+
+```{r, echo=FALSE}
+music <-
+  get_tidy_audio_analysis("3cqPu20DGTGUoZtbJH2Dmi?si=d4edc4368dbe4402") |>
+  compmus_align(bars, segments) |>
+  select(bars) |>
+  unnest(bars) |>
+  mutate(
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = "acentre", norm = "manhattan"
+      )
+  ) |>
+  mutate(
+    timbre =
+      map(segments,
+          compmus_summarise, timbre,
+          method = "mean"
+      )
+  )
+bind_rows(
+  music |> 
+    compmus_self_similarity(pitches, "aitchison") |> 
+    mutate(d = d / max(d), type = "Chroma"),
+  music |> 
+    compmus_self_similarity(timbre, "euclidean") |> 
+    mutate(d = d / max(d), type = "Timbre")
+) |>
+  mutate() |> 
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) + ggtitle("Chroma vs timber based matrices for 'Can't Lie - Ali Gatie'") + 
+  geom_tile() +
+  coord_fixed() +
+  facet_wrap(~type) +
+  scale_fill_viridis_c(option = "E", guide = "none") +
+  theme_classic() + 
+  labs(x = "", y = "")
+
+```
+
+These two matrices are the chroma vs timber based matrices for "Can't lie" by Ali Gatie. Both of these matrices illustrate pitch- and timbre-based self-similarity in this song. These are needed to understand the structure of the song.
+
+
+
+### Introduction
+
+
+#### Introduction
+
+
+The corpus I have chosen includes two different playlists. One playlist is made to be a study playlist, that would include music that is supposed to let you have a great focus in order to be studying well. The other playlist would be a party playlist, one that is made for parties to increase people their energy. I chose it because I always try to use study playlists when I realize that I am having a bit of trouble trying to stay focused while studying. I want to find out through research whether there would be a measurable difference between the two different playlists. I think what is very interesting about this research, would be to find out what is the exact thing that makes you feel more focused, and what the exact thing is that increases your energy when listening to a party playlist.
+The comparison points in my corpus are that that the study playlist has more of instrumental and calm music, where the party playlist includes songs with much more energy, and much more intense instruments. I expect the two playlists to be somewhere similar, because in some way they are trying to increase something in the human brain (focus in playlist 1, and energy in playlist 2). Something I definitely do not expect similar in the two playlists is the sort of vibe the two playlists include. 
+There is definitely a well-known difference between the two playlists, because otherwise people would not use them. People usually use study playlists intentionally, knowing they want to increase their focus. Party playlists are usually used when people want to get in a party mood, or they will be used on a party itself. 
+As said earlier, what would be definitely typical about the study playlist is the instrumental aspect. Also, they would have rather 'calm' music that would not easily distract you from what you are trying to focus on. In a party playlist you will probably find less of those calm and bland songs. (Which obviously depends on the chosen playlist). The party playlist will have rather songs with more instruments, a high presence of a bass and even remixes.
+
+
 ### Conclusion
 
 ##### Conclusion
@@ -189,5 +399,3 @@ This is the chromagram for the outlier from the study music playlist. I used the
 ### Discussion
 
 #### Discussion
-
-lala
