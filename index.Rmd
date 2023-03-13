@@ -16,10 +16,13 @@ Analysis {.storyboard}
 knitr::opts_chunk$set(echo = TRUE)
 remotes::install_github('jaburgoyne/compmus')
 library(tidyverse)
+library(knitr)
 library(spotifyr)
 library(dplyr)
 library(ggplot2)
 library(compmus)
+library(plotly)
+library(flexdashboard)
 ```
 
 ```{r include = FALSE}
@@ -39,10 +42,350 @@ music <-
 ```
 
 
-### Visualisation
+### Chordogram for the party music outlier
 
 
-#### Histogram plot 
+```{r, echo=FALSE}
+circshift <- function(v, n) {
+  if (n == 0) v else c(tail(v, n), head(v, -n))
+}
+
+#      C     C#    D     Eb    E     F     F#    G     Ab    A     Bb    B
+major_chord <-
+  c(   1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    0,    0)
+minor_chord <-
+  c(   1,    0,    0,    1,    0,    0,    0,    1,    0,    0,    0,    0)
+seventh_chord <-
+  c(   1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    1,    0)
+
+major_key <-
+  c(6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88)
+minor_key <-
+  c(6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17)
+
+chord_templates <-
+  tribble(
+    ~name, ~template,
+    "Gb:7", circshift(seventh_chord, 6),
+    "Gb:maj", circshift(major_chord, 6),
+    "Bb:min", circshift(minor_chord, 10),
+    "Db:maj", circshift(major_chord, 1),
+    "F:min", circshift(minor_chord, 5),
+    "Ab:7", circshift(seventh_chord, 8),
+    "Ab:maj", circshift(major_chord, 8),
+    "C:min", circshift(minor_chord, 0),
+    "Eb:7", circshift(seventh_chord, 3),
+    "Eb:maj", circshift(major_chord, 3),
+    "G:min", circshift(minor_chord, 7),
+    "Bb:7", circshift(seventh_chord, 10),
+    "Bb:maj", circshift(major_chord, 10),
+    "D:min", circshift(minor_chord, 2),
+    "F:7", circshift(seventh_chord, 5),
+    "F:maj", circshift(major_chord, 5),
+    "A:min", circshift(minor_chord, 9),
+    "C:7", circshift(seventh_chord, 0),
+    "C:maj", circshift(major_chord, 0),
+    "E:min", circshift(minor_chord, 4),
+    "G:7", circshift(seventh_chord, 7),
+    "G:maj", circshift(major_chord, 7),
+    "B:min", circshift(minor_chord, 11),
+    "D:7", circshift(seventh_chord, 2),
+    "D:maj", circshift(major_chord, 2),
+    "F#:min", circshift(minor_chord, 6),
+    "A:7", circshift(seventh_chord, 9),
+    "A:maj", circshift(major_chord, 9),
+    "C#:min", circshift(minor_chord, 1),
+    "E:7", circshift(seventh_chord, 4),
+    "E:maj", circshift(major_chord, 4),
+    "G#:min", circshift(minor_chord, 8),
+    "B:7", circshift(seventh_chord, 11),
+    "B:maj", circshift(major_chord, 11),
+    "D#:min", circshift(minor_chord, 3)
+  )
+
+key_templates <-
+  tribble(
+    ~name, ~template,
+    "Gb:maj", circshift(major_key, 6),
+    "Bb:min", circshift(minor_key, 10),
+    "Db:maj", circshift(major_key, 1),
+    "F:min", circshift(minor_key, 5),
+    "Ab:maj", circshift(major_key, 8),
+    "C:min", circshift(minor_key, 0),
+    "Eb:maj", circshift(major_key, 3),
+    "G:min", circshift(minor_key, 7),
+    "Bb:maj", circshift(major_key, 10),
+    "D:min", circshift(minor_key, 2),
+    "F:maj", circshift(major_key, 5),
+    "A:min", circshift(minor_key, 9),
+    "C:maj", circshift(major_key, 0),
+    "E:min", circshift(minor_key, 4),
+    "G:maj", circshift(major_key, 7),
+    "B:min", circshift(minor_key, 11),
+    "D:maj", circshift(major_key, 2),
+    "F#:min", circshift(minor_key, 6),
+    "A:maj", circshift(major_key, 9),
+    "C#:min", circshift(minor_key, 1),
+    "E:maj", circshift(major_key, 4),
+    "G#:min", circshift(minor_key, 8),
+    "B:maj", circshift(major_key, 11),
+    "D#:min", circshift(minor_key, 3)
+  )
+
+studymusicchordo <-
+  get_tidy_audio_analysis("3nnG7AM9QopHVPEuLX3Khk?si=5445c9e4070642ee") |>
+  compmus_align(sections, segments) |>
+  select(sections) |>
+  unnest(sections) |>
+  mutate(
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = "mean", norm = "manhattan"
+      )
+  )
+
+studymusicchordo |> 
+  compmus_match_pitch_template(
+    key_templates,         # Change to chord_templates if descired
+    method = "euclidean",  # Try different distance metrics
+    norm = "manhattan"     # Try different norms
+  ) |>
+  ggplot(
+    aes(x = start + duration / 2, width = duration, y = name, fill = d)
+  ) + ggtitle("Chordogram for outlier party music 'Let It Go by James Bay'") +
+  geom_tile() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_minimal() +
+  labs(x = "Time (s)", y = "")
+
+```
+
+***
+**Chordogram for "Let It Go" by James Bay**
+
+This is the chordogram for the outlier from the party music playlist. I used a song from the study music playlist, and chose the song "Let It Go" by James Bay.
+
+The chordogram visualizes the chords by using pitch templates, in this case from the song "Let It Go" by James Bay. Each chord is represented by a colored bar, and this is spanned over a certain amount of time. As proceding to the right and going further in time, it is visible that the identified chords with colored bars change along. 
+
+The detected chords in this song include D minor, B major, G minor, E major, C minor, A major, F minor, D major, B minor, E minor, and even more. The very first seconds of the song resulted into something very noticeable way in the chordogram. When listening to the song it has a low magnitude of a lot of chords that you can clearly hear. Further into the song, most of the chords stay consistent and contain a higher magnitude. 
+
+### Chordogram for the study music outlier
+
+
+```{r, echo=FALSE}
+library(tidyverse)
+library(spotifyr)
+library(dplyr)
+library(ggplot2)
+library(compmus)
+
+circshift <- function(v, n) {
+  if (n == 0) v else c(tail(v, n), head(v, -n))
+}
+
+#      C     C#    D     Eb    E     F     F#    G     Ab    A     Bb    B
+major_chord <-
+  c(   1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    0,    0)
+minor_chord <-
+  c(   1,    0,    0,    1,    0,    0,    0,    1,    0,    0,    0,    0)
+seventh_chord <-
+  c(   1,    0,    0,    0,    1,    0,    0,    1,    0,    0,    1,    0)
+
+major_key <-
+  c(6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88)
+minor_key <-
+  c(6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17)
+
+chord_templates <-
+  tribble(
+    ~name, ~template,
+    "Gb:7", circshift(seventh_chord, 6),
+    "Gb:maj", circshift(major_chord, 6),
+    "Bb:min", circshift(minor_chord, 10),
+    "Db:maj", circshift(major_chord, 1),
+    "F:min", circshift(minor_chord, 5),
+    "Ab:7", circshift(seventh_chord, 8),
+    "Ab:maj", circshift(major_chord, 8),
+    "C:min", circshift(minor_chord, 0),
+    "Eb:7", circshift(seventh_chord, 3),
+    "Eb:maj", circshift(major_chord, 3),
+    "G:min", circshift(minor_chord, 7),
+    "Bb:7", circshift(seventh_chord, 10),
+    "Bb:maj", circshift(major_chord, 10),
+    "D:min", circshift(minor_chord, 2),
+    "F:7", circshift(seventh_chord, 5),
+    "F:maj", circshift(major_chord, 5),
+    "A:min", circshift(minor_chord, 9),
+    "C:7", circshift(seventh_chord, 0),
+    "C:maj", circshift(major_chord, 0),
+    "E:min", circshift(minor_chord, 4),
+    "G:7", circshift(seventh_chord, 7),
+    "G:maj", circshift(major_chord, 7),
+    "B:min", circshift(minor_chord, 11),
+    "D:7", circshift(seventh_chord, 2),
+    "D:maj", circshift(major_chord, 2),
+    "F#:min", circshift(minor_chord, 6),
+    "A:7", circshift(seventh_chord, 9),
+    "A:maj", circshift(major_chord, 9),
+    "C#:min", circshift(minor_chord, 1),
+    "E:7", circshift(seventh_chord, 4),
+    "E:maj", circshift(major_chord, 4),
+    "G#:min", circshift(minor_chord, 8),
+    "B:7", circshift(seventh_chord, 11),
+    "B:maj", circshift(major_chord, 11),
+    "D#:min", circshift(minor_chord, 3)
+  )
+
+key_templates <-
+  tribble(
+    ~name, ~template,
+    "Gb:maj", circshift(major_key, 6),
+    "Bb:min", circshift(minor_key, 10),
+    "Db:maj", circshift(major_key, 1),
+    "F:min", circshift(minor_key, 5),
+    "Ab:maj", circshift(major_key, 8),
+    "C:min", circshift(minor_key, 0),
+    "Eb:maj", circshift(major_key, 3),
+    "G:min", circshift(minor_key, 7),
+    "Bb:maj", circshift(major_key, 10),
+    "D:min", circshift(minor_key, 2),
+    "F:maj", circshift(major_key, 5),
+    "A:min", circshift(minor_key, 9),
+    "C:maj", circshift(major_key, 0),
+    "E:min", circshift(minor_key, 4),
+    "G:maj", circshift(major_key, 7),
+    "B:min", circshift(minor_key, 11),
+    "D:maj", circshift(major_key, 2),
+    "F#:min", circshift(minor_key, 6),
+    "A:maj", circshift(major_key, 9),
+    "C#:min", circshift(minor_key, 1),
+    "E:maj", circshift(major_key, 4),
+    "G#:min", circshift(minor_key, 8),
+    "B:maj", circshift(major_key, 11),
+    "D#:min", circshift(minor_key, 3)
+  )
+
+partymusicchordo <-
+  get_tidy_audio_analysis("0k2GOhqsrxDTAbFFSdNJjT?si=1b9696f28a5a43a6") |>
+  compmus_align(sections, segments) |>
+  select(sections) |>
+  unnest(sections) |>
+  mutate(
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = "mean", norm = "manhattan"
+      )
+  )
+
+partymusicchordo |> 
+  compmus_match_pitch_template(
+    key_templates,         # Change to chord_templates if descired
+    method = "euclidean",  # Try different distance metrics
+    norm = "manhattan"     # Try different norms
+  ) |>
+  ggplot(
+    aes(x = start + duration / 2, width = duration, y = name, fill = d)
+  ) + ggtitle("Chordogram for outlier study music 'Temperature by Sean Paul'") +
+geom_tile() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_minimal() +
+  labs(x = "Time (s)", y = "")
+```
+
+***
+**Chordogram for the Temperature by Sean Paul**
+
+This is the chordogram for the outlier from the study music playlist. I used a song from the party music playlist, and chose the song "Temperature" by Sean Paul.
+
+The chordogram visualizes the chords by using pitch templates, in this case from the song "Temperature" by Sean Paul. Each chord is represented by a colored bar, and this is spanned over a certain amount of time. As proceding to the right and going further in time, it is visible that the identified chords with colored bars change along. 
+
+The detected chords in this song include D minor, B major, G minor, E major, C minor, A major, F minor, D major, B minor, G Major, and even more. Towards the end of the song, the last few seconds of the song resulted into something very noticeable way in the chordogram. When listening to the song it has a low magnitude of a lot of chords that you can clearly hear. In the chordogram it is clear and well-defined to see where the chorus is as it repeats. The rest of the song seems to stay very constant. Towards the end of the song, from 200 seconds, the last few seconds of the song seem to have a lower magnitude than the rest of the song. 
+
+
+### Incorporating the low-level audio analysis features at the playlists level
+
+
+```{r, echo=FALSE}
+studymsc <-
+  get_playlist_audio_features(
+    "thesoundsofspotify",
+    "663NfS5wple5xvRUy0aj7s?si=d3f4c71bff824310"
+  ) |>
+  slice(1:30) |>
+  add_audio_analysis()
+partymsc <-
+  get_playlist_audio_features(
+    "thesoundsofspotify",
+    "4aY6uMZsFEtbxJIAoJItnt?si=91c2c80ef9534759"
+  ) |>
+  slice(1:30) |>
+  add_audio_analysis()
+corpus <-
+  studymsc |>
+  mutate(genre = "Study Music") |>
+  bind_rows(partymsc |> mutate(genre = "Party Music"))
+
+corpus |>
+  mutate(
+    sections =
+      map(
+        sections,                                    # sections or segments
+        summarise_at,
+        vars(tempo, loudness, duration),             # features of interest
+        list(section_mean = mean, section_sd = sd)   # aggregation functions
+      )
+  ) |>
+  unnest(sections) |>
+  ggplot(
+    aes(
+      x = tempo,
+      y = tempo_section_sd,
+      colour = genre,
+      alpha = loudness
+    )
+  ) +
+  geom_point(aes(size = duration / 60)) +
+  geom_rug() +
+  theme_minimal() +
+  ylim(0, 5) +
+  labs(
+    x = "Mean Tempo (bpm)",
+    y = "SD Tempo",
+    colour = "Genre",
+    size = "Duration (min)",
+    alpha = "Volume (dBFS)", 
+    title = "Variation in tempo for study and party playlist"
+  )
+```
+
+***
+**Variation in tempo for study and party playlist**
+
+**The strategy**
+
+This is a strategy to incorporate the low-level audio analysis features at the playlist level. We take look in both of the playlists we have in the corpus, the party music playlist and the study music playlist. 
+Let's start with visualizing the difference between Spotify’s ‘Sound of’ playlists for party music and study music. First, we load the playlists. We fetch the low-level features for every track in this playlist, but we will limit ourselves to 30 tracks from each playlist to mantain a fast operation. From this we get results that make a heavy use of list-columns.
+
+**Mean Tempo**
+
+The mean tempo for the study music seems to be much more distributed over the entire graph (between 70-180 bpm), where the party music's mean tempo seems to be more concentrated (between 90-140 bpm). 
+
+**SD Tempo**
+
+The same goes for the SD tempo, the SD tempo for the study music seems to be more distributed, the variation is pretty wide. On the contrary, the party music's SD tempo is very concentrated, with a few outliers. 
+
+**Duration**
+
+The duration for both the party music and the study music seem to both have a variation for the difference in duration. But here again, it is well-clear that for the study music there is more variation in the duration than for the party music. 
+
+**Volume**
+
+For the party music, the majority of tracks seem to have a higher volume. For the study music, the higher volume tracks also occur, but it seems like most of the tracks have a one of the lower dBFS instead of the highest one in the legenda.  
+
+
+### What is the difference in energy between party and study music?
 
 
 ```{r pressure, echo=FALSE}
@@ -53,10 +396,11 @@ music |>
   ggtitle("Energy against count histogram for study and party music")
 ```
 
+***
 The difference in energy distribution between party and study music is very well shown in this histogram. Study music its energy has a bigger distribution on the lower side of the enrgy, where the party music has its bigger distribution on the higher energy side. The most common count for party music, is almost the least common count for study music and vice versa. 
 
 
-#### Energy and valence plot
+### Energy and valence distribution for party and study music features
 
 
 ```{r , echo=FALSE}
@@ -124,10 +468,66 @@ music |>                    # Start with awards.
 
 ```
 
-As expected, for the party music the energy level is concentrated higher than for study music. Also, the party music is more concentrated towards the higher valence side, and the study music is more concentrated towards the lower valence side. This makes sense, because most study music are slow songs, and slow songs are often linked to sad songs. Low valence songs indicate more towards sadness, where high valence songs indicate more towards happiness. Study music has more majors in its plot, and party music has more minors in its plot. Something that is interesting to see is that party music includes more minors, which also seem to be slightly bigger, and study music includes more majors, which seem to be slighty smaller. Minors have more darker sounds, and majors have more of brighter sounds. 
+***
+As expected, for the party music the energy level is concentrated higher than for study music. Also, the party music is more concentrated towards the higher valence side, and the study music is more concentrated towards the lower valence side. This makes sense, because most study music are slow songs, and slow songs are often linked to sad songs. Low valence songs indicate more towards sadness, where high valence songs indicate more towards happiness. Study music has more majors in its plot, and party music has more minors in its plot. Something that is interesting to see is that party music includes more minors, which also seem to be slightly bigger, and study music includes more majors, which seem to be slighty smaller. Minors have more darker sounds, and majors have more of brighter sounds. The reason for party music including more minors, is that the darker sounds can imply to a swingy rhythm/energy, which would not exactly make you think of party music but it offers a contrast in the music, which is often found in party music. 
 
+### Interactive energy and valence distribution
 
-#### Chromagram for the party music outlier
+```{r, echo=FALSE}
+partymusc <- get_playlist_audio_features("", "4aY6uMZsFEtbxJIAoJItnt?si=1eeb0bcc4af247ad")
+studymusc <- get_playlist_audio_features("", "663NfS5wple5xvRUy0aj7s?si=a4503edff29941e1")
+corpus <-
+  partymusc |>
+  mutate(country = "Party Music") |>
+  bind_rows(studymusc |> mutate(country = "Study Music")) |>
+  mutate(
+    country = fct_relevel(country, "Study Music", "Party Music")
+  )
+plot <-
+  corpus |>
+  ggplot(                          # Set up the plot.
+    aes(
+      x = valence,
+      y = energy,
+      size = track.popularity,
+      colour = danceability,
+      label = track.name           # Labels will be interactively visible.
+    )
+  ) +
+  geom_point() +                   # Scatter plot.
+  geom_rug(size = 0.1) +           # Add 'fringes' to show data distribution.
+  facet_wrap(~country) +           # Separate charts per country.
+  scale_x_continuous(              # Fine-tune the x axis.
+    limits = c(0, 1),
+    breaks = c(0, 0.50, 1),        # Use grid-lines for quadrants only.
+    minor_breaks = NULL            # Remove 'minor' grid-lines.
+  ) +
+  scale_y_continuous(              # Fine-tune the y axis in the same way.
+    limits = c(0, 1),
+    breaks = c(0, 0.50, 1),
+    minor_breaks = NULL
+  ) +
+  scale_colour_viridis_c(          # Use the cividis palette
+    option = "E",                  # Qualitative set.
+    alpha = 0.8,                   # Include some transparency
+    guide = "none"
+  ) +
+  scale_size_continuous(           # Fine-tune the sizes of each point.
+    guide = "none"                 # Remove the legend for size.
+  ) +
+  theme_light() +                  # Use a simpler theme.
+  labs(                            # Make the titles nice.
+    x = "Valence",
+    y = "Energy",
+    title = "Energy and valence for party and study music"
+  )
+ggplotly(plot)
+```
+
+***
+As expected, for the party music the energy level is concentrated higher than for study music. Also, the party music is more concentrated towards the higher valence side, and the study music is more concentrated towards the lower valence side. This makes sense, because most study music are slow songs, and slow songs are often linked to sad songs. This is an interactive plot, when hovering over the plot, in addition to the energy and valence, also the track popularity, the track name and danceability are shown. 
+
+### Chromagram for the party music outlier
 
 
 ```{r , echo=FALSE}
@@ -154,10 +554,14 @@ music |>
   scale_fill_viridis_c()
 ```
 
+***
+**Chromagram for the party music outlier**
+
 This is the chromagram for the outlier from the party music playlist. I used the song from the study music playlist, and chose the song "Get You The Moon" by Kina and Snøw. This song starts very slow and monotonous. It only has a few sounds on the piano. From around 80 seconds until around 110 seconds, this changes, and more of the piano jumps in. From around 145 seconds these jump in again until the end. All of this is perceptible in the chromagram, because around these periods D pitches have a higher magnitude than over the rest of the song. 
 
 
-#### Chromagram for the study music outlier
+### Chromagram for the study music outlier
+
 
 
 ```{r , echo=FALSE}
@@ -184,10 +588,14 @@ music |>
   scale_fill_viridis_c()
 ```
 
+***
+**Chromagram for the study music outlier**
+
 This is the chromagram for the outlier from the study music playlist. I used the song from the party music playlist, and chose the song "Scream & Shout" by will.i.am and Britney Spears.
 
 
-#### Ceptogram for the party music outlier
+### Ceptogram for the party music outlier
+
 
 
 ```{r , echo=FALSE}
@@ -229,10 +637,15 @@ music |>
 
 ```
 
+***
+**Ceptogram for the party music outlier**
+
+
 This is the ceptogram for the outlier from the party music playlist. Here again I used the same outlier as for the chromagram for party music. I used the song from the study music playlist, and chose the song "Get You The Moon" by Kina and Snøw. 
 
 
-#### Ceptogram for the study music outlier 
+### Ceptogram for the study music outlier
+
 
 ```{r , echo=FALSE}
 music <-
@@ -273,10 +686,13 @@ music |>
 
 ```
 
+***
+**Ceptogram for the study music outlier**
+
 This is the ceptogram for the outlier from the study music playlist. Here again, I have used the same outlier as for the chromagram for study music. I used the song from the party music playlist, and chose the song "Scream & Shout" by will.i.am and Britney Spears.
 
+### What is the structure of "Pon de Replay" by Rihanna?
 
-#### Chroma VS timbre based matrices for party music
 
 ```{r, echo=FALSE}
 music <-
@@ -324,10 +740,14 @@ bind_rows(
   labs(x = "", y = "")
 ```
 
+***
+**Structure for "Pon de Replay" by Rihanna**
+
 These two matrices are the chroma vs timber based matrices for "Pon de Replay" by Rihanna. The matrices illustrate pitch- and timbre-based self-similarity in this song. These are needed to understand the structure of the song.
 
+### What is the structure of Can't Lie" by Ali Gatie?
 
-#### Chroma VS timbre based matrices for study music
+
 
 ```{r, echo=FALSE}
 music <-
@@ -376,20 +796,25 @@ bind_rows(
 
 ```
 
+***
+**Structure for "Can't Lie" by Ali Gatie**
+
 These two matrices are the chroma vs timber based matrices for "Can't lie" by Ali Gatie. Both of these matrices illustrate pitch- and timbre-based self-similarity in this song. These are needed to understand the structure of the song.
 
 
+### Introduction {data-commentary-width=600}
 
-### Introduction
-
-
-#### Introduction
-
+**Introduction**
 
 The corpus I have chosen includes two different playlists. One playlist is made to be a study playlist, that would include music that is supposed to let you have a great focus in order to be studying well. The other playlist would be a party playlist, one that is made for parties to increase people their energy. I chose it because I always try to use study playlists when I realize that I am having a bit of trouble trying to stay focused while studying. I want to find out through research whether there would be a measurable difference between the two different playlists. I think what is very interesting about this research, would be to find out what is the exact thing that makes you feel more focused, and what the exact thing is that increases your energy when listening to a party playlist.
 The comparison points in my corpus are that that the study playlist has more of instrumental and calm music, where the party playlist includes songs with much more energy, and much more intense instruments. I expect the two playlists to be somewhere similar, because in some way they are trying to increase something in the human brain (focus in playlist 1, and energy in playlist 2). Something I definitely do not expect similar in the two playlists is the sort of vibe the two playlists include. 
 There is definitely a well-known difference between the two playlists, because otherwise people would not use them. People usually use study playlists intentionally, knowing they want to increase their focus. Party playlists are usually used when people want to get in a party mood, or they will be used on a party itself. 
 As said earlier, what would be definitely typical about the study playlist is the instrumental aspect. Also, they would have rather 'calm' music that would not easily distract you from what you are trying to focus on. In a party playlist you will probably find less of those calm and bland songs. (Which obviously depends on the chosen playlist). The party playlist will have rather songs with more instruments, a high presence of a bass and even remixes.
+
+***
+<iframe src="https://open.spotify.com/embed/playlist/4aY6uMZsFEtbxJIAoJItnt?utm_source=generator" width="50%" height="100%" frameBorder="0" allowtransparency="true" allow="encrypted-media" data-external="1"></iframe>
+
+<iframe src="https://open.spotify.com/embed/playlist/663NfS5wple5xvRUy0aj7s?utm_source=generator" width="50%" height="100%" frameBorder="0" allowtransparency="true" allow="encrypted-media" data-external="1"></iframe>
 
 
 ### Conclusion
