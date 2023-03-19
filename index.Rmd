@@ -1,7 +1,7 @@
 ---
 title: "index"
 author: "Sarah Abdalla"
-date: "2023-03-06"
+date: "2023-13-03"
 output: 
   flexdashboard::flex_dashboard:
     storyboard: true
@@ -40,6 +40,160 @@ music <-
   )
 
 ```
+
+
+### Histogram of Tempi for Party Music and Study Music features
+
+```{r, echo=FALSE}
+playlist_studymusic <- "663NfS5wple5xvRUy0aj7s?si=d0a2d31141e64d1f"
+playlist_partymusic <- "4aY6uMZsFEtbxJIAoJItnt?si=1b003f9614044890"
+studymusicfeatures <- get_playlist_audio_features("", playlist_studymusic)
+partymusicfeatures <- get_playlist_audio_features("", playlist_partymusic)
+music <-
+  bind_rows(
+    studymusicfeatures |> mutate(category = "Study Music Features"),
+    partymusicfeatures |> mutate(category = "Party Music Features")
+  )
+
+music |> 
+  ggplot(aes(x = tempo)) +
+  geom_histogram(bins = 20, fill="#360007") +
+  labs(x = "Tempo (BPM)", y="Count") +
+  facet_wrap(~category) +
+  ggtitle("Tempi for Party Music and Study Music features")
+```
+
+***
+**Tempi for Party Music and Study Music features**
+
+The count for the party music lies much higher than for the study music. The party music is generally busier than the study music, so this is as expected. The tempo for the study music are distributed over a wider region than for the party music. For the study music the range is 25-215 BPM, but for the party music the range is 55-200 BPM. I also expected this, because usually for study music there is a wide variety of tempi in the songs, but also between the different songs. 
+
+### Tempogram for the party music outlier 
+
+
+```{r, echo=FALSE}
+tempo <- get_tidy_audio_analysis("1almCHdsfikRPfVB9VrEdT?si=df354dad1e3d4e12")
+tempo |>
+  tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) |>
+  ggplot(aes(x = time, y = bpm, fill = power)) + ggtitle("Tempogram for 'Little Do You Know' by Alex & Sierra") +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(x = "Time (s)", y = "Tempo (BPM)") +
+  theme_classic()
+```
+
+***
+**Tempogram for 'Little Do You Know' by Alex & Sierra**
+
+With the use of onsets of every segment we are able to generate Fourier tempograms. This is a cyclic tempogram for an outlier for party music, based on the piece "Little Do You Know" by Alex and Sierra. This song is one from the study music playlist. The tempogram is an attempt to use Spotify's API to analyse the tempo of this song. Analysing the tempogram, the tempo is estimated around a 150 BPM, with a few outliers. I expected the outliers, because the tempo of the song is definitely not consistent, as it changes noticeably. I did expect the BPM to lay higher. When comparing this tempogram to our next tempogram, the one for a party song, has a lower BPM. I would intuitively correlate a higher BPM with a busier song, but in this case it appears to not always have to be a busy song. It can also be a slow song, but with a lot of beats that lead to a high BPM. 
+
+### Tempogram for the study music outlier
+
+```{r, echo=FALSE}
+tempo <- get_tidy_audio_analysis("1OOtq8tRnDM8kG2gqUPjAj?si=7ec6062afaec4eb1")
+tempo |>
+  tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) |>
+  ggplot(aes(x = time, y = bpm, fill = power)) + ggtitle("Tempogram for 'Beat It' by Michael Jackson") +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(x = "Time (s)", y = "Tempo (BPM)") + 
+  theme_classic()
+```
+
+***
+**Tempogram for "Beat It" by Michael Jackson**
+
+With the use of onsets of every segment we are able to generate Fourier tempograms. This cyclic tempogram is an outlier for study music, based on "Beat It" by Michael Jackson. This song is originally from the party music playlist. The tempogram is an attempt to use Spotify's API to analyse the tempo of this song. This song seems to have a strong estimation for the BPM, which is a ~140 BPM as it appears as a strong line. I definitely did expect a steady BPM, since throughout the song I consistently sense the same tempo. I also expected the BPM to be a bit higher, maybe above the 160 BPM, because when I listen to the song I feel like there is a high tempo in it. 
+
+
+### Tempo curves and self-similarity matrices comparison
+
+```{r, echo=FALSE}
+tempo <- get_tidy_audio_analysis("0dQZmVKzYF3F9W64ESs8h4?si=05120e431569445f")
+tempo |>
+  tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) |>
+  ggplot(aes(x = time, y = bpm, fill = power)) + ggtitle("Tempogram for 'Für Elise' by Beethoven") +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(x = "Time (s)", y = "Tempo (BPM)") + 
+  theme_classic()
+```
+
+
+```{r, echo=FALSE}
+music <-
+  get_tidy_audio_analysis("0dQZmVKzYF3F9W64ESs8h4?si=05120e431569445f ") |>
+  compmus_align(bars, segments) |>
+  select(bars) |>
+  unnest(bars) |>
+  mutate(
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = "rms", norm = "euclidean"
+      )
+  ) |>
+  mutate(
+    timbre =
+      map(segments,
+          compmus_summarise, timbre,
+          method = "rms", norm = "euclidean"
+      )
+  )
+
+music |>
+  compmus_self_similarity(timbre, "cosine") |> 
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) +
+  geom_tile() + ggtitle("Self-similarity matrix for 'Für Elise' by Beethoven") + 
+  coord_fixed() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_classic() +
+  labs(x = "", y = "")
+
+```
+
+***
+**Tempo curves and self-similarity matrix comparison**
+
+The tempogram and the self-similarity matrix for "Für Elise" by Beethoven show similarities. Both show the structure of the song. The way how we see that the tempo is visualized in the tempogram, is visible in the same way in the self-similarity matrix. Both visualizations analyse the same tempo for the song. In the self-similarity matrix, the outliers are more clear to see than in the tempogram. 
+
+
+### Keys for Party Music and Study Music features
+
+```{r, echo=FALSE}
+playlist_studymusic <- "663NfS5wple5xvRUy0aj7s?si=d0a2d31141e64d1f"
+playlist_partymusic <- "4aY6uMZsFEtbxJIAoJItnt?si=1b003f9614044890"
+studymusicfeatures <- get_playlist_audio_features("", playlist_studymusic)
+partymusicfeatures <- get_playlist_audio_features("", playlist_partymusic)
+music <-
+  bind_rows(
+    studymusicfeatures |> mutate(category = "Study Music Features"),
+    partymusicfeatures |> mutate(category = "Party Music Features")
+  )
+
+# Plot histogram with keys
+hist <- ggplot(music, aes(x=key_mode, fill=playlist_name)) +
+  geom_bar(position = "dodge") +
+  scale_fill_manual(values=c("#332288",
+                             "#AA4499")) +
+  labs(x= "Keys", angle = 90, y = "Frequency", fill="Playlists") +
+  theme(axis.text.x = element_text(angle=90, hjust=1)) +
+  ggtitle("Keys for Party Music and Study Music features")
+ggplotly(hist)
+```
+
+***
+**Keys for Party Music and Study Music features**
+
+This histogram shows the variety of keys, weighted to each other, for party and study music features. It is clear that for the study music features the C major is the most common. For party music it is also very clear that the G major is the most common.
 
 
 ### Chordogram for the party music outlier
@@ -391,12 +545,14 @@ For the party music, the majority of tracks seem to have a higher volume. For th
 ```{r pressure, echo=FALSE}
 music |>
   ggplot(aes(x = energy)) +
-  geom_histogram(binwidth = 0.1) +
-  facet_wrap(~category) + 
+  geom_histogram(binwidth = 0.1, fill="#EB6864") + 
+  facet_wrap(~category) +
   ggtitle("Energy against count histogram for study and party music")
 ```
 
 ***
+**Energy against count histogram for party and study music**
+
 The difference in energy distribution between party and study music is very well shown in this histogram. Study music its energy has a bigger distribution on the lower side of the enrgy, where the party music has its bigger distribution on the higher energy side. The most common count for party music, is almost the least common count for study music and vice versa. 
 
 
@@ -469,17 +625,19 @@ music |>                    # Start with awards.
 ```
 
 ***
+**Energy and valence distribution for party and study music**
+
 As expected, for the party music the energy level is concentrated higher than for study music. Also, the party music is more concentrated towards the higher valence side, and the study music is more concentrated towards the lower valence side. This makes sense, because most study music are slow songs, and slow songs are often linked to sad songs. Low valence songs indicate more towards sadness, where high valence songs indicate more towards happiness. Study music has more majors in its plot, and party music has more minors in its plot. Something that is interesting to see is that party music includes more minors, which also seem to be slightly bigger, and study music includes more majors, which seem to be slighty smaller. Minors have more darker sounds, and majors have more of brighter sounds. The reason for party music including more minors, is that the darker sounds can imply to a swingy rhythm/energy, which would not exactly make you think of party music but it offers a contrast in the music, which is often found in party music. 
 
 ### Interactive energy and valence distribution
 
 ```{r, echo=FALSE}
-partymusc <- get_playlist_audio_features("", "4aY6uMZsFEtbxJIAoJItnt?si=1eeb0bcc4af247ad")
-studymusc <- get_playlist_audio_features("", "663NfS5wple5xvRUy0aj7s?si=a4503edff29941e1")
+partymusic <- get_playlist_audio_features("", "4aY6uMZsFEtbxJIAoJItnt?si=1eeb0bcc4af247ad")
+studymusic <- get_playlist_audio_features("", "663NfS5wple5xvRUy0aj7s?si=a4503edff29941e1")
 corpus <-
-  partymusc |>
+  partymusic |>
   mutate(country = "Party Music") |>
-  bind_rows(studymusc |> mutate(country = "Study Music")) |>
+  bind_rows(studymusic |> mutate(country = "Study Music")) |>
   mutate(
     country = fct_relevel(country, "Study Music", "Party Music")
   )
@@ -525,6 +683,8 @@ ggplotly(plot)
 ```
 
 ***
+**Energy and valence for party and study music**
+
 As expected, for the party music the energy level is concentrated higher than for study music. Also, the party music is more concentrated towards the higher valence side, and the study music is more concentrated towards the lower valence side. This makes sense, because most study music are slow songs, and slow songs are often linked to sad songs. This is an interactive plot, when hovering over the plot, in addition to the energy and valence, also the track popularity, the track name and danceability are shown. 
 
 ### Chromagram for the party music outlier
