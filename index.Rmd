@@ -41,6 +41,21 @@ music <-
 
 ```
 
+### Introduction {data-commentary-width=600}
+
+**Introduction**
+
+The corpus I have chosen includes two different playlists. One playlist is made to be a study playlist, that would include music that is supposed to let you have a great focus in order to be studying well. The other playlist would be a party playlist, one that is made for parties to increase people their energy. I chose it because I always try to use study playlists when I realize that I am having a bit of trouble trying to stay focused while studying. I want to find out through research whether there would be a measurable difference between the two different playlists. I think what is very interesting about this research, would be to find out what is the exact thing that makes you feel more focused, and what the exact thing is that increases your energy when listening to a party playlist.
+The comparison points in my corpus are that that the study playlist has more of instrumental and calm music, where the party playlist includes songs with much more energy, and much more intense instruments. I expect the two playlists to be somewhere similar, because in some way they are trying to increase something in the human brain (focus in playlist 1, and energy in playlist 2). Something I definitely do not expect similar in the two playlists is the sort of vibe the two playlists include. 
+There is definitely a well-known difference between the two playlists, because otherwise people would not use them. People usually use study playlists intentionally, knowing they want to increase their focus. Party playlists are usually used when people want to get in a party mood, or they will be used on a party itself. 
+As said earlier, what would be definitely typical about the study playlist is the instrumental aspect. Also, they would have rather 'calm' music that would not easily distract you from what you are trying to focus on. In a party playlist you will probably find less of those calm and bland songs. (Which obviously depends on the chosen playlist). The party playlist will have rather songs with more instruments, a high presence of a bass and even remixes.
+
+***
+<iframe src="https://open.spotify.com/embed/playlist/4aY6uMZsFEtbxJIAoJItnt?utm_source=generator" width="50%" height="100%" frameBorder="0" allowtransparency="true" allow="encrypted-media" data-external="1"></iframe>
+
+<iframe src="https://open.spotify.com/embed/playlist/663NfS5wple5xvRUy0aj7s?utm_source=generator" width="50%" height="100%" frameBorder="0" allowtransparency="true" allow="encrypted-media" data-external="1"></iframe>
+
+
 ### Histogram of Tempi for Party Music and Study Music features
 
 ```{r, echo=FALSE}
@@ -755,8 +770,6 @@ This is the chromagram for the outlier from the study music playlist. I used the
 
 ### Ceptogram for the party music outlier
 
-
-
 ```{r , echo=FALSE}
 
 music <-
@@ -906,8 +919,6 @@ These two matrices are the chroma vs timber based matrices for "Pon de Replay" b
 
 ### What is the structure of Can't Lie" by Ali Gatie?
 
-
-
 ```{r, echo=FALSE}
 music <-
   get_tidy_audio_analysis("3cqPu20DGTGUoZtbJH2Dmi?si=d4edc4368dbe4402") |>
@@ -959,22 +970,6 @@ bind_rows(
 **Structure for "Can't Lie" by Ali Gatie**
 
 These two matrices are the chroma vs timber based matrices for "Can't lie" by Ali Gatie. Both of these matrices illustrate pitch- and timbre-based self-similarity in this song. These are needed to understand the structure of the song.
-
-
-### Introduction {data-commentary-width=600}
-
-**Introduction**
-
-The corpus I have chosen includes two different playlists. One playlist is made to be a study playlist, that would include music that is supposed to let you have a great focus in order to be studying well. The other playlist would be a party playlist, one that is made for parties to increase people their energy. I chose it because I always try to use study playlists when I realize that I am having a bit of trouble trying to stay focused while studying. I want to find out through research whether there would be a measurable difference between the two different playlists. I think what is very interesting about this research, would be to find out what is the exact thing that makes you feel more focused, and what the exact thing is that increases your energy when listening to a party playlist.
-The comparison points in my corpus are that that the study playlist has more of instrumental and calm music, where the party playlist includes songs with much more energy, and much more intense instruments. I expect the two playlists to be somewhere similar, because in some way they are trying to increase something in the human brain (focus in playlist 1, and energy in playlist 2). Something I definitely do not expect similar in the two playlists is the sort of vibe the two playlists include. 
-There is definitely a well-known difference between the two playlists, because otherwise people would not use them. People usually use study playlists intentionally, knowing they want to increase their focus. Party playlists are usually used when people want to get in a party mood, or they will be used on a party itself. 
-As said earlier, what would be definitely typical about the study playlist is the instrumental aspect. Also, they would have rather 'calm' music that would not easily distract you from what you are trying to focus on. In a party playlist you will probably find less of those calm and bland songs. (Which obviously depends on the chosen playlist). The party playlist will have rather songs with more instruments, a high presence of a bass and even remixes.
-
-***
-<iframe src="https://open.spotify.com/embed/playlist/4aY6uMZsFEtbxJIAoJItnt?utm_source=generator" width="50%" height="100%" frameBorder="0" allowtransparency="true" allow="encrypted-media" data-external="1"></iframe>
-
-<iframe src="https://open.spotify.com/embed/playlist/663NfS5wple5xvRUy0aj7s?utm_source=generator" width="50%" height="100%" frameBorder="0" allowtransparency="true" allow="encrypted-media" data-external="1"></iframe>
-
 
 ### Conclusion
 
