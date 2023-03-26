@@ -1,7 +1,7 @@
 ---
 title: "index"
 author: "Sarah Abdalla"
-date: "2023-20-03"
+date: "2023-27-03"
 output: 
   flexdashboard::flex_dashboard:
     storyboard: true
@@ -23,6 +23,7 @@ library(ggplot2)
 library(compmus)
 library(plotly)
 library(flexdashboard)
+library(tidymodels)
 ```
 
 ```{r include = FALSE}
@@ -40,6 +41,94 @@ music <-
   )
 
 ```
+
+### Classification Party and Study Music
+
+```{r, echo=FALSE}
+party <- get_playlist_audio_features("spotify", "4aY6uMZsFEtbxJIAoJItnt?si=1b003f9614044890")
+study <- get_playlist_audio_features("spotify", "663NfS5wple5xvRUy0aj7s?si=d0a2d31141e64d1f")
+music <-
+  bind_rows(
+    party |> mutate(playlist = "Party Music") |> slice_head(n = 20),
+    study |> mutate(playlist = "Study Music") |> slice_head(n = 20),
+  ) |> 
+  add_audio_analysis()
+
+music_features <-
+  music |>  # For your portfolio, change this to the name of your corpus.
+  mutate(
+    playlist = factor(playlist),
+    segments = map2(segments, key, compmus_c_transpose),
+    pitches =
+      map(
+        segments,
+        compmus_summarise, pitches,
+        method = "mean", norm = "manhattan"
+      ),
+    timbre =
+      map(
+        segments,
+        compmus_summarise, timbre,
+        method = "mean",
+      )
+  ) |>
+  mutate(pitches = map(pitches, compmus_normalise, "clr")) |>
+  mutate_at(vars(pitches, timbre), map, bind_rows) |>
+  unnest(cols = c(pitches, timbre))
+
+music_recipe <-
+  recipe(
+    playlist ~
+      danceability +
+      energy +
+      loudness +
+      speechiness +
+      acousticness +
+      instrumentalness +
+      liveness +
+      valence +
+      tempo +
+      duration +
+      C + `C#|Db` + D + `D#|Eb` +
+      E + `F` + `F#|Gb` + G +
+      `G#|Ab` + A + `A#|Bb` + B +
+      c01 + c02 + c03 + c04 + c05 + c06 +
+      c07 + c08 + c09 + c10 + c11 + c12,
+    data = music_features           # Use the same name as the previous block.
+  ) |>
+  step_center(all_predictors()) |>
+  step_scale(all_predictors())      # Converts to z-scores.
+  # step_range(all_predictors())    # Sets range to [0, 1].
+
+music_cv <- music_features |> vfold_cv(5)
+
+knn_model <-
+  nearest_neighbor(neighbors = 1) |>
+  set_mode("classification") |> 
+  set_engine("kknn")
+music_knn <- 
+  workflow() |> 
+  add_recipe(music_recipe) |> 
+  add_model(knn_model) |> 
+  fit_resamples(music_cv, control = control_resamples(save_pred = TRUE))
+
+get_conf_mat <- function(fit) {
+  outcome <- .get_tune_outcome_names(fit)
+  fit |> 
+    collect_predictions() |> 
+    conf_mat(truth = outcome, estimate = .pred_class)
+}  
+
+
+music_knn |> get_conf_mat() |> autoplot(type = "mosaic")
+
+```
+
+***
+**Classification Party and Study Music**
+
+As my research in this portfolio is to find the differences in study and party music, seeing a classification in the two playlists in my corpus can help with clarifications. As seen in the mosaic plot, the distinction made between study and party music is made very clear. Even though both of the playlists seem to predicted be in the right and truthful playlist, it seems that there are a few study music songs that are being seen as party music, and vice versa. This is not too shocking, because it is also kind of a subjective matter whether a song is being seen as a study/party song. The tempo in a certain study song can give one person the feeling of a party song, but also vice versa. The tempo of a party song can sometimes help a certain person focus while studying. 
+
 
 
 ### Histogram of Tempi for Party Music and Study Music features
@@ -106,7 +195,9 @@ tempo |>
 With the use of onsets of every segment we are able to generate Fourier tempograms. This cyclic tempogram is an outlier for study music, based on "Beat It" by Michael Jackson. This song is originally from the party music playlist. The tempogram is an attempt to use Spotify's API to analyse the tempo of this song. This song seems to have a strong estimation for the BPM, which is a ~140 BPM as it appears as a strong line. I definitely did expect a steady BPM, since throughout the song I consistently sense the same tempo. I also expected the BPM to be a bit higher, maybe above the 160 BPM, because when I listen to the song I feel like there is a high tempo in it. 
 
 
-### Tempo curves and self-similarity matrices comparison
+### Tempo Curves and Self-similarity Matrices Comparison
+
+#### Tempo Curves
 
 ```{r, echo=FALSE}
 tempo <- get_tidy_audio_analysis("0dQZmVKzYF3F9W64ESs8h4?si=05120e431569445f")
@@ -119,6 +210,7 @@ tempo |>
   theme_classic()
 ```
 
+#### Self-similarity Matrices Comparison
 
 ```{r, echo=FALSE}
 music <-
