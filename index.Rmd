@@ -122,7 +122,7 @@ ggplotly(plot)
 
 As expected, for the party music the energy level is concentrated higher than for study music. Also, the party music is more concentrated towards the higher valence side, and the study music is more concentrated towards the lower valence side. This makes sense, because most study music are slow songs, and slow songs are often linked to sad songs. This is an interactive plot, when hovering over the plot, in addition to the energy and valence, also the track popularity, the track name and danceability are shown. 
 
-When hovering over the plot, and comparing the differences in danceability for the two playlists, the difference is noticeable. The danceability for study music varies a lot. The track “Lost Without You” has a danceability of 0.7, while the track “To Build A Home” has one of 0.3. Most study tracks vary between these rates, which results in a high variation between the study music tracks.
+When hovering over the plot, and comparing the differences in danceability for the two playlists, the difference is noticeable. The danceability for study music lays averagely lower than for party music. The track “Lost Without You” has a danceability of 0.7, while the track “To Build A Home” has one of 0.3. Most study tracks vary between these rates, which results in a high variation between the study music tracks.
 
 The danceability for party music also varies, but the variation in between the tracks is a bit smaller than for the study music playlist. The danceability varies between a danceability of 0.4, and a danceability of 0.99. The average danceability here lies a lot higher than for the study music playlist. 
 
@@ -872,5 +872,7 @@ We have seen for chromagrams, that the difference in used pitch classes can diff
 For the study music playlist we have seen that the range is 25-215 BPM, but for the party music the range is 55-200 BPM. I did expect this result, because usually for study music there is a wide variety of tempi in the songs themselves, but also between the different songs. 
 
 Lastly, we have seen that even though both of the playlists seem to predicted be in the right and truthful playlist during classification, it seems that there are a few study music songs that are being seen as party music, and vice versa. This is not too shocking, because it is also kind of a subjective matter whether a song is being seen as a study/party song.
+
+To sum it up, we have seen there is definitely a measurable difference between the two different playlists in danceability, energy, valence, chroma features, timbre features, temporal features, and truthful classification. Nevertheless, between some of these features, like the danceability and the energy, we have seen some overlap between the two playlists, which explains why people could use party music to study on and vice versa. 
 
 
