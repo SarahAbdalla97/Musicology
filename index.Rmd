@@ -1,15 +1,15 @@
 ---
-title: "index"
+title: "Partying on Study Music?"
 author: "Sarah Abdalla"
-date: "2023-27-03"
+date: "2023"
 output: 
   flexdashboard::flex_dashboard:
     storyboard: true
-    theme: journal
+    theme: united
     self_contained: false
     
 ---
-Analysis {.storyboard}
+Introduction {.storyboard}
 =========================================
 
 ```{r setup, include=FALSE}
@@ -42,179 +42,173 @@ music <-
 
 ```
 
-### Classification Party and Study Music
+### Introduction {data-commentary-width=600}
+
+**Introduction**
+
+The corpus I have chosen includes two different playlists. One playlist is made to be a study playlist, that would include music that is supposed to let you have a great focus in order to be studying well. The other playlist would be a party playlist, one that is made for parties to increase people their energy. I chose it because I always try to use study playlists when I realize that I am having a bit of trouble trying to stay focused while studying. I want to find out through research whether there would be a measurable difference between the two different playlists. I think what is very interesting about this research, would be to find out what is the exact thing that makes you feel more focused, and what the exact thing is that increases your energy when listening to a party playlist.
+
+The comparison points in my corpus are that that the study playlist has more of instrumental and calm music, where the party playlist includes songs with much more energy, and much more intense instruments. I expect the two playlists to be somewhat similar, because in some way they are trying to increase something in the human brain: focus in the study playlist, and energy in the party playlist. I do not expect similarity in the two playlists is the sort of energy the two playlists include. 
+
+There is definitely a well-known difference between the two playlists, because otherwise people would not use them. People usually use study playlists intentionally, knowing they want to increase their focus. Party playlists are usually used when people want to get in a party mood, or they will be used on a party itself. 
+
+As said earlier, what would be definitely typical about the study playlist is the instrumental aspect. Also, they would have rather 'calm' music that would not easily distract you from what you are trying to focus on. In a party playlist you will probably find less of those calm and bland songs. The party playlist will have rather songs with more instruments, a high presence of a bass and even remixes.
+
+***
+<iframe src="https://open.spotify.com/embed/playlist/4aY6uMZsFEtbxJIAoJItnt?utm_source=generator" width="50%" height="100%" frameBorder="0" allowtransparency="true" allow="encrypted-media" data-external="1"></iframe>
+
+<iframe src="https://open.spotify.com/embed/playlist/663NfS5wple5xvRUy0aj7s?utm_source=generator" width="50%" height="100%" frameBorder="0" allowtransparency="true" allow="encrypted-media" data-external="1"></iframe>
+
+Track-level Features {.storyboard}
+=========================================
+
+### Energy, Valence, Danceability
+
+#### Interactive Energy and Valence Distribution
 
 ```{r, echo=FALSE}
-party <- get_playlist_audio_features("spotify", "4aY6uMZsFEtbxJIAoJItnt?si=1b003f9614044890")
-study <- get_playlist_audio_features("spotify", "663NfS5wple5xvRUy0aj7s?si=d0a2d31141e64d1f")
-music <-
-  bind_rows(
-    party |> mutate(playlist = "Party Music") |> slice_head(n = 20),
-    study |> mutate(playlist = "Study Music") |> slice_head(n = 20),
-  ) |> 
-  add_audio_analysis()
-
-music_features <-
-  music |>  # For your portfolio, change this to the name of your corpus.
+partymusic <- get_playlist_audio_features("", "4aY6uMZsFEtbxJIAoJItnt?si=1eeb0bcc4af247ad")
+studymusic <- get_playlist_audio_features("", "663NfS5wple5xvRUy0aj7s?si=a4503edff29941e1")
+corpus <-
+  partymusic |>
+  mutate(country = "Party Music") |>
+  bind_rows(studymusic |> mutate(country = "Study Music")) |>
   mutate(
-    playlist = factor(playlist),
-    segments = map2(segments, key, compmus_c_transpose),
-    pitches =
-      map(
-        segments,
-        compmus_summarise, pitches,
-        method = "mean", norm = "manhattan"
-      ),
-    timbre =
-      map(
-        segments,
-        compmus_summarise, timbre,
-        method = "mean",
-      )
-  ) |>
-  mutate(pitches = map(pitches, compmus_normalise, "clr")) |>
-  mutate_at(vars(pitches, timbre), map, bind_rows) |>
-  unnest(cols = c(pitches, timbre))
-
-music_recipe <-
-  recipe(
-    playlist ~
-      danceability +
-      energy +
-      loudness +
-      speechiness +
-      acousticness +
-      instrumentalness +
-      liveness +
-      valence +
-      tempo +
-      duration +
-      C + `C#|Db` + D + `D#|Eb` +
-      E + `F` + `F#|Gb` + G +
-      `G#|Ab` + A + `A#|Bb` + B +
-      c01 + c02 + c03 + c04 + c05 + c06 +
-      c07 + c08 + c09 + c10 + c11 + c12,
-    data = music_features           # Use the same name as the previous block.
-  ) |>
-  step_center(all_predictors()) |>
-  step_scale(all_predictors())      # Converts to z-scores.
-  # step_range(all_predictors())    # Sets range to [0, 1].
-
-music_cv <- music_features |> vfold_cv(5)
-
-knn_model <-
-  nearest_neighbor(neighbors = 1) |>
-  set_mode("classification") |> 
-  set_engine("kknn")
-music_knn <- 
-  workflow() |> 
-  add_recipe(music_recipe) |> 
-  add_model(knn_model) |> 
-  fit_resamples(music_cv, control = control_resamples(save_pred = TRUE))
-
-get_conf_mat <- function(fit) {
-  outcome <- .get_tune_outcome_names(fit)
-  fit |> 
-    collect_predictions() |> 
-    conf_mat(truth = outcome, estimate = .pred_class)
-}  
-
-
-music_knn |> get_conf_mat() |> autoplot(type = "mosaic")
-
+    country = fct_relevel(country, "Study Music", "Party Music")
+  )
+plot <-
+  corpus |>
+  ggplot(                          # Set up the plot.
+    aes(
+      x = valence,
+      y = energy,
+      size = track.popularity,
+      colour = danceability,
+      label = track.name           # Labels will be interactively visible.
+    )
+  ) +
+  geom_point() +                   # Scatter plot.
+  geom_rug(size = 0.1) +           # Add 'fringes' to show data distribution.
+  facet_wrap(~country) +           # Separate charts per country.
+  scale_x_continuous(              # Fine-tune the x axis.
+    limits = c(0, 1),
+    breaks = c(0, 0.50, 1),        # Use grid-lines for quadrants only.
+    minor_breaks = NULL            # Remove 'minor' grid-lines.
+  ) +
+  scale_y_continuous(              # Fine-tune the y axis in the same way.
+    limits = c(0, 1),
+    breaks = c(0, 0.50, 1),
+    minor_breaks = NULL
+  ) +
+  scale_colour_viridis_c(          # Use the cividis palette
+    option = "E",                  # Qualitative set.
+    alpha = 0.8,                   # Include some transparency
+    guide = "none"
+  ) +
+  scale_size_continuous(           # Fine-tune the sizes of each point.
+    guide = "none"                 # Remove the legend for size.
+  ) +
+  theme_light() +                  # Use a simpler theme.
+  labs(                            # Make the titles nice.
+    x = "Valence",
+    y = "Energy",
+    title = "Energy and Valence for Party and Study Music"
+  )
+ggplotly(plot)
 ```
 
 ***
-**Classification Party and Study Music**
+**Energy and Valence for Party and Study Music**
 
-As my research in this portfolio is to find the differences in study and party music, seeing a classification in the two playlists in my corpus can help with clarifications. As seen in the mosaic plot, the distinction made between study and party music is made very clear. Even though both of the playlists seem to predicted be in the right and truthful playlist, it seems that there are a few study music songs that are being seen as party music, and vice versa. This is not too shocking, because it is also kind of a subjective matter whether a song is being seen as a study/party song. The tempo in a certain study song can give one person the feeling of a party song, but also vice versa. The tempo of a party song can sometimes help a certain person focus while studying. 
+As expected, for the party music the energy level is concentrated higher than for study music. Also, the party music is more concentrated towards the higher valence side, and the study music is more concentrated towards the lower valence side. This makes sense, because most study music are slow songs, and slow songs are often linked to sad songs. This is an interactive plot, when hovering over the plot, in addition to the energy and valence, also the track popularity, the track name and danceability are shown. 
+
+When hovering over the plot, and comparing the differences in danceability for the two playlists, the difference is noticeable. The danceability for study music varies a lot. The track “Lost Without You” has a danceability of 0.7, while the track “To Build A Home” has one of 0.3. Most study tracks vary between these rates, which results in a high variation between the study music tracks.
+
+The danceability for party music also varies, but the variation in between the tracks is a bit smaller than for the study music playlist. The danceability varies between a danceability of 0.4, and a danceability of 0.99. The average danceability here lies a lot higher than for the study music playlist. 
+
+For both kind of the playlists, when the energy in the track is higher, the danceability is usually higher as well. This makes a lot of sense.
+
+#### Energy, Valence and Danceability
 
 
+```{r , echo=FALSE}
 
-### Histogram of Tempi for Party Music and Study Music features
-
-```{r, echo=FALSE}
-playlist_studymusic <- "663NfS5wple5xvRUy0aj7s?si=d0a2d31141e64d1f"
-playlist_partymusic <- "4aY6uMZsFEtbxJIAoJItnt?si=1b003f9614044890"
-studymusicfeatures <- get_playlist_audio_features("", playlist_studymusic)
-partymusicfeatures <- get_playlist_audio_features("", playlist_partymusic)
-music <-
-  bind_rows(
-    studymusicfeatures |> mutate(category = "Study Music Features"),
-    partymusicfeatures |> mutate(category = "Party Music Features")
+music |>                    # Start with awards.
+  mutate(
+    mode = ifelse(mode == 0, "Minor", "Major")
+  ) |>
+  ggplot(                     # Set up the plot.
+    aes(
+      x = valence,
+      y = energy,
+      size = loudness,
+      colour = mode
+    )
+  ) +
+  geom_point() +              # Scatter plot.
+  geom_rug(linewidth = 0.1) + # Add 'fringes' to show data distribution.
+  geom_text(                  # Add text labels from above.
+    aes(
+      x = valence,
+      y = energy,
+      label = label
+    ),
+    data = 
+      tibble(
+        label = c("calm", "busy"),
+        category = c("Study Music Features", "Party Music Features"),
+        valence = c(0.090, 0.123),
+        energy = c(0.101, 0.967)
+      ),
+    colour = "black",         # Override colour (not mode here).
+    size = 3,                 # Override size (not loudness here).
+    hjust = "left",           # Align left side of label with the point.
+    vjust = "bottom",         # Align bottom of label with the point.
+    nudge_x = -0.05,          # Nudge the label slightly left.
+    nudge_y = 0.02            # Nudge the label slightly up.
+  ) +
+  facet_wrap(~ category) +    # Separate charts per playlist.
+  scale_x_continuous(         # Fine-tune the x axis.
+    limits = c(0, 1),
+    breaks = c(0, 0.50, 1),   # Use grid-lines for quadrants only.
+    minor_breaks = NULL       # Remove 'minor' grid-lines.
+  ) +
+  scale_y_continuous(         # Fine-tune the y axis in the same way.
+    limits = c(0, 1),
+    breaks = c(0, 0.50, 1),
+    minor_breaks = NULL
+  ) +
+  scale_colour_brewer(        # Use the Color Brewer to choose a palette.
+    type = "qual",            # Qualitative set.
+    palette = "Paired"        # Name of the palette is 'Paired'.
+  ) +
+  scale_size_continuous(      # Fine-tune the sizes of each point.
+    trans = "exp",            # Use an exp transformation to emphasise loud.
+    guide = "none"            # Remove the legend for size.
+  ) +
+  theme_light() +             # Use a simpler theme.
+  labs(                       # Make the titles nice.
+    x = "Valence",
+    y = "Energy",
+    colour = "Mode",
+    title = "Energy, Valence and Danceability"
   )
 
-music |> 
-  ggplot(aes(x = tempo)) +
-  geom_histogram(bins = 20, fill="#360007") +
-  labs(x = "Tempo (BPM)", y="Count") +
-  facet_wrap(~category) +
-  ggtitle("Tempi for Party Music and Study Music features")
 ```
 
 ***
-**Tempi for Party Music and Study Music features**
+**Energy and valence distribution for party and study music**
 
-The count for the party music lies much higher than for the study music. The party music is generally busier than the study music, so this is as expected. The tempo for the study music are distributed over a wider region than for the party music. For the study music the range is 25-215 BPM, but for the party music the range is 55-200 BPM. I also expected this, because usually for study music there is a wide variety of tempi in the songs, but also between the different songs. 
+Study music has more majors in its plot, and party music has more minors in its plot. Something that is interesting to see is that party music includes more minors, which also seem to be slightly bigger, and study music includes more majors, which seem to be slighty smaller. Minors have more darker sounds, and majors have more of brighter sounds. The reason for party music including more minors, is that the darker sounds can imply to a swingy rhythm/energy, which would not exactly make you think of party music but it offers a contrast in the music, which is often found in party music. 
 
-### Tempogram for the party music outlier 
+### Structure of "Pon de Replay" by Rihanna and "Can't Lie" by Ali Gatie
 
+#### Structure of "Pon de Replay" by Rihanna
 
-```{r, echo=FALSE}
-tempo <- get_tidy_audio_analysis("1almCHdsfikRPfVB9VrEdT?si=df354dad1e3d4e12")
-tempo |>
-  tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) |>
-  ggplot(aes(x = time, y = bpm, fill = power)) + ggtitle("Tempogram for 'Little Do You Know' by Alex & Sierra") +
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +
-  labs(x = "Time (s)", y = "Tempo (BPM)") +
-  theme_classic()
-```
-
-***
-**Tempogram for 'Little Do You Know' by Alex & Sierra**
-
-With the use of onsets of every segment we are able to generate Fourier tempograms. This is a cyclic tempogram for an outlier for party music, based on the piece "Little Do You Know" by Alex and Sierra. This song is one from the study music playlist. The tempogram is an attempt to use Spotify's API to analyse the tempo of this song. Analysing the tempogram, the tempo is estimated around a 150 BPM, with a few outliers. I expected the outliers, because the tempo of the song is definitely not consistent, as it changes noticeably. I did expect the BPM to lay higher. When comparing this tempogram to our next tempogram, the one for a party song, has a lower BPM. I would intuitively correlate a higher BPM with a busier song, but in this case it appears to not always have to be a busy song. It can also be a slow song, but with a lot of beats that lead to a high BPM. 
-
-### Tempogram for the study music outlier
-
-```{r, echo=FALSE}
-tempo <- get_tidy_audio_analysis("1OOtq8tRnDM8kG2gqUPjAj?si=7ec6062afaec4eb1")
-tempo |>
-  tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) |>
-  ggplot(aes(x = time, y = bpm, fill = power)) + ggtitle("Tempogram for 'Beat It' by Michael Jackson") +
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +
-  labs(x = "Time (s)", y = "Tempo (BPM)") + 
-  theme_classic()
-```
-
-***
-**Tempogram for "Beat It" by Michael Jackson**
-
-With the use of onsets of every segment we are able to generate Fourier tempograms. This cyclic tempogram is an outlier for study music, based on "Beat It" by Michael Jackson. This song is originally from the party music playlist. The tempogram is an attempt to use Spotify's API to analyse the tempo of this song. This song seems to have a strong estimation for the BPM, which is a ~140 BPM as it appears as a strong line. I definitely did expect a steady BPM, since throughout the song I consistently sense the same tempo. I also expected the BPM to be a bit higher, maybe above the 160 BPM, because when I listen to the song I feel like there is a high tempo in it. 
-
-
-### Tempo Curves and Self-similarity Matrices Comparison
-
-#### Tempo Curves
-
-```{r, echo=FALSE}
-tempo <- get_tidy_audio_analysis("0dQZmVKzYF3F9W64ESs8h4?si=05120e431569445f")
-tempo |>
-  tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) |>
-  ggplot(aes(x = time, y = bpm, fill = power)) + ggtitle("Tempogram for 'Für Elise' by Beethoven") +
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +
-  labs(x = "Time (s)", y = "Tempo (BPM)") + 
-  theme_classic()
-```
-
-#### Self-similarity Matrices Comparison
 
 ```{r, echo=FALSE}
 music <-
-  get_tidy_audio_analysis("0dQZmVKzYF3F9W64ESs8h4?si=05120e431569445f ") |>
+  get_tidy_audio_analysis("4TsmezEQVSZNNPv5RJ65Ov?si=468bdbdd8e9143a1") |>
   compmus_align(bars, segments) |>
   select(bars) |>
   unnest(bars) |>
@@ -222,19 +216,25 @@ music <-
     pitches =
       map(segments,
           compmus_summarise, pitches,
-          method = "rms", norm = "euclidean"
+          method = "acentre", norm = "manhattan"
       )
   ) |>
   mutate(
     timbre =
       map(segments,
           compmus_summarise, timbre,
-          method = "rms", norm = "euclidean"
+          method = "mean"
       )
   )
-
-music |>
-  compmus_self_similarity(timbre, "cosine") |> 
+bind_rows(
+  music |> 
+    compmus_self_similarity(pitches, "aitchison") |> 
+    mutate(d = d / max(d), type = "Chroma"),
+  music |> 
+    compmus_self_similarity(timbre, "euclidean") |> 
+    mutate(d = d / max(d), type = "Timbre")
+) |>
+  mutate() |> 
   ggplot(
     aes(
       x = xstart + xduration / 2,
@@ -243,19 +243,88 @@ music |>
       height = yduration,
       fill = d
     )
-  ) +
-  geom_tile() + ggtitle("Self-similarity matrix for 'Für Elise' by Beethoven") + 
+  ) + 
+  geom_tile() +
   coord_fixed() +
-  scale_fill_viridis_c(guide = "none") +
-  theme_classic() +
+  facet_wrap(~type) +
+  scale_fill_viridis_c(option = "E", guide = "none") +
+  theme_classic() + 
+  labs(x = "", y = "")
+```
+
+***
+**Structure For Pon de Replay by Rihanna**
+
+These two matrices are the chroma vs timber based matrices for "Pon de Replay" by Rihanna, a song from the party playlist. The matrices illustrate pitch- and timbre-based self-similarity in this song. These are needed to understand the structure of the song.
+
+The chroma-based matrix has a few high values for some of different pieces of music, since each row and column of the matrix corresponds to a different piece of music. High values means a high degree of similarity of pitches between the compared pieces of music. Patterns of symmetry are recognized as well in this chroma-based matrix, these indicate the musical relationship between the two pieces of music, in terms of their pitch classes. 
+
+The timbre-based matrix also has a lot of high values, which indicates a high similarity between the different pieces of music in terms of their timbre features. There is less of a pattern here, but more of clusters, which represents the fact that there are similar timbre features in these clusters of pieces of music. 
+
+
+#### Structure Of Can't Lie By Ali Gatie
+
+```{r, echo=FALSE}
+music <-
+  get_tidy_audio_analysis("3cqPu20DGTGUoZtbJH2Dmi?si=d4edc4368dbe4402") |>
+  compmus_align(bars, segments) |>
+  select(bars) |>
+  unnest(bars) |>
+  mutate(
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = "acentre", norm = "manhattan"
+      )
+  ) |>
+  mutate(
+    timbre =
+      map(segments,
+          compmus_summarise, timbre,
+          method = "mean"
+      )
+  )
+bind_rows(
+  music |> 
+    compmus_self_similarity(pitches, "aitchison") |> 
+    mutate(d = d / max(d), type = "Chroma"),
+  music |> 
+    compmus_self_similarity(timbre, "euclidean") |> 
+    mutate(d = d / max(d), type = "Timbre")
+) |>
+  mutate() |> 
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) + 
+  geom_tile() +
+  coord_fixed() +
+  facet_wrap(~type) +
+  scale_fill_viridis_c(option = "E", guide = "none") +
+  theme_classic() + 
   labs(x = "", y = "")
 
 ```
 
 ***
-**Tempo curves and self-similarity matrix comparison**
+**Structure For Can't Lie By Ali Gatie**
 
-The tempogram and the self-similarity matrix for "Für Elise" by Beethoven show similarities. Both show the structure of the song. The way how we see that the tempo is visualized in the tempogram, is visible in the same way in the self-similarity matrix. Both visualizations analyse the same tempo for the song. In the self-similarity matrix, the outliers are more clear to see than in the tempogram. 
+These two matrices are the chroma vs timber based matrices for "Can't lie" by Ali Gatie, a song from the study playlist. Both of these matrices illustrate pitch- and timbre-based self-similarity in this song. These are needed to understand the structure of the song.
+
+The chroma-based matrix for this study song has a more low values than high values. This means there is a lower degree of similarity of pitches between the compared pieces of music. Even though there are not as many high values, patterns of symmetry are recognized in this chroma-based matrix. These patterns indicate the musical relationship between the two pieces of music, in terms of their pitch classes. 
+
+The timbre-based matrix also has more high values, which indicate a high similarity between the different pieces of music in terms of their timbre features. This matrix includes a lot of clusters, which represents the fact that there are similar timbre features in these clusters of pieces of music. 
+
+Overall, the chroma-based matrix structure for a study song seems to have lower degree of similarity of pitches between the compared pieces of music compared to the chroma-based matrix structure for a party song. In this example, the results for the timbre-based matrix structure seem alike, in including clusters rather than patterns. 
+
+
+Chroma And Timbre Features {.storyboard}
+=========================================
 
 
 ### Keys for Party Music and Study Music features
@@ -278,17 +347,18 @@ hist <- ggplot(music, aes(x=key_mode, fill=playlist_name)) +
                              "#AA4499")) +
   labs(x= "Keys", angle = 90, y = "Frequency", fill="Playlists") +
   theme(axis.text.x = element_text(angle=90, hjust=1)) +
-  ggtitle("Keys for Party Music and Study Music features")
+  ggtitle("Keys for Party Music and Study Music Features")
 ggplotly(hist)
 ```
 
 ***
-**Keys for Party Music and Study Music features**
+**Keys For Party Music And Study Music Features**
 
 This histogram shows the variety of keys, weighted to each other, for party and study music features. It is clear that for the study music features the C major is the most common. For party music it is also very clear that the G major is the most common.
 
+### Chordograms
 
-### Chordogram for the party music outlier
+#### Chordogram For Let It Go By James Bay
 
 
 ```{r, echo=FALSE}
@@ -399,7 +469,7 @@ studymusicchordo |>
   ) |>
   ggplot(
     aes(x = start + duration / 2, width = duration, y = name, fill = d)
-  ) + ggtitle("Chordogram for outlier party music 'Let It Go by James Bay'") +
+  ) +
   geom_tile() +
   scale_fill_viridis_c(guide = "none") +
   theme_minimal() +
@@ -408,15 +478,15 @@ studymusicchordo |>
 ```
 
 ***
-**Chordogram for "Let It Go" by James Bay**
+**Chordogram For "Let It Go" By James Bay**
 
-This is the chordogram for the outlier from the party music playlist. I used a song from the study music playlist, and chose the song "Let It Go" by James Bay.
+I used a song from the study music playlist for this chordogram, and chose the song "Let It Go" by James Bay.
 
-The chordogram visualizes the chords by using pitch templates, in this case from the song "Let It Go" by James Bay. Each chord is represented by a colored bar, and this is spanned over a certain amount of time. As proceding to the right and going further in time, it is visible that the identified chords with colored bars change along. 
+The chordogram visualizes the chords by using pitch templates, in this case from the song "Let It Go" by James Bay. Each chord is represented by a colored bar, and this is spanned over a certain amount of time. As proceeding to the right and going further in time, it is visible that the identified chords with colored bars change along. 
 
 The detected chords in this song include D minor, B major, G minor, E major, C minor, A major, F minor, D major, B minor, E minor, and even more. The very first seconds of the song resulted into something very noticeable way in the chordogram. When listening to the song it has a low magnitude of a lot of chords that you can clearly hear. Further into the song, most of the chords stay consistent and contain a higher magnitude. 
 
-### Chordogram for the study music outlier
+#### Chordogram For Temperature By Sean Paul
 
 
 ```{r, echo=FALSE}
@@ -533,7 +603,7 @@ partymusicchordo |>
   ) |>
   ggplot(
     aes(x = start + duration / 2, width = duration, y = name, fill = d)
-  ) + ggtitle("Chordogram for outlier study music 'Temperature by Sean Paul'") +
+  ) + 
 geom_tile() +
   scale_fill_viridis_c(guide = "none") +
   theme_minimal() +
@@ -541,253 +611,27 @@ geom_tile() +
 ```
 
 ***
-**Chordogram for the Temperature by Sean Paul**
+**Chordogram For Temperature By Sean Paul**
 
-This is the chordogram for the outlier from the study music playlist. I used a song from the party music playlist, and chose the song "Temperature" by Sean Paul.
+I used a song from the party music playlist for this chordogram, and chose the song "Temperature" by Sean Paul.
 
 The chordogram visualizes the chords by using pitch templates, in this case from the song "Temperature" by Sean Paul. Each chord is represented by a colored bar, and this is spanned over a certain amount of time. As proceding to the right and going further in time, it is visible that the identified chords with colored bars change along. 
 
-The detected chords in this song include D minor, B major, G minor, E major, C minor, A major, F minor, D major, B minor, G Major, and even more. Towards the end of the song, the last few seconds of the song resulted into something very noticeable way in the chordogram. When listening to the song it has a low magnitude of a lot of chords that you can clearly hear. In the chordogram it is clear and well-defined to see where the chorus is as it repeats. The rest of the song seems to stay very constant. Towards the end of the song, from 200 seconds, the last few seconds of the song seem to have a lower magnitude than the rest of the song. 
+The detected chords in this song include D minor, B major, G minor, E major, C minor, A major, F minor, D major, B minor, G Major, and even more. Towards the end of the song, the last few seconds of the song resulted into something very noticeable way in the chordogram. When listening to the song it has a low magnitude of a lot of chords that you can clearly hear. In the chordogram it is clear and well-defined to see where the chorus is as it repeats. The rest of the song seems to stay very constant. Towards the end of the song, from 200 seconds, the last few seconds of the song seem to have a lower magnitude than the rest of the song.
 
+### Chromagrams
 
-### Incorporating the low-level audio analysis features at the playlists level
-
-
-```{r, echo=FALSE}
-studymsc <-
-  get_playlist_audio_features(
-    "thesoundsofspotify",
-    "663NfS5wple5xvRUy0aj7s?si=d3f4c71bff824310"
-  ) |>
-  slice(1:30) |>
-  add_audio_analysis()
-partymsc <-
-  get_playlist_audio_features(
-    "thesoundsofspotify",
-    "4aY6uMZsFEtbxJIAoJItnt?si=91c2c80ef9534759"
-  ) |>
-  slice(1:30) |>
-  add_audio_analysis()
-corpus <-
-  studymsc |>
-  mutate(genre = "Study Music") |>
-  bind_rows(partymsc |> mutate(genre = "Party Music"))
-
-corpus |>
-  mutate(
-    sections =
-      map(
-        sections,                                    # sections or segments
-        summarise_at,
-        vars(tempo, loudness, duration),             # features of interest
-        list(section_mean = mean, section_sd = sd)   # aggregation functions
-      )
-  ) |>
-  unnest(sections) |>
-  ggplot(
-    aes(
-      x = tempo,
-      y = tempo_section_sd,
-      colour = genre,
-      alpha = loudness
-    )
-  ) +
-  geom_point(aes(size = duration / 60)) +
-  geom_rug() +
-  theme_minimal() +
-  ylim(0, 5) +
-  labs(
-    x = "Mean Tempo (bpm)",
-    y = "SD Tempo",
-    colour = "Genre",
-    size = "Duration (min)",
-    alpha = "Volume (dBFS)", 
-    title = "Variation in tempo for study and party playlist"
-  )
-```
-
-***
-**Variation in tempo for study and party playlist**
-
-**The strategy**
-
-This is a strategy to incorporate the low-level audio analysis features at the playlist level. We take look in both of the playlists we have in the corpus, the party music playlist and the study music playlist. 
-Let's start with visualizing the difference between Spotify’s ‘Sound of’ playlists for party music and study music. First, we load the playlists. We fetch the low-level features for every track in this playlist, but we will limit ourselves to 30 tracks from each playlist to mantain a fast operation. From this we get results that make a heavy use of list-columns.
-
-**Mean Tempo**
-
-The mean tempo for the study music seems to be much more distributed over the entire graph (between 70-180 bpm), where the party music's mean tempo seems to be more concentrated (between 90-140 bpm). 
-
-**SD Tempo**
-
-The same goes for the SD tempo, the SD tempo for the study music seems to be more distributed, the variation is pretty wide. On the contrary, the party music's SD tempo is very concentrated, with a few outliers. 
-
-**Duration**
-
-The duration for both the party music and the study music seem to both have a variation for the difference in duration. But here again, it is well-clear that for the study music there is more variation in the duration than for the party music. 
-
-**Volume**
-
-For the party music, the majority of tracks seem to have a higher volume. For the study music, the higher volume tracks also occur, but it seems like most of the tracks have a one of the lower dBFS instead of the highest one in the legenda.  
-
-
-### What is the difference in energy between party and study music?
-
-
-```{r pressure, echo=FALSE}
-music |>
-  ggplot(aes(x = energy)) +
-  geom_histogram(binwidth = 0.1, fill="#EB6864") + 
-  facet_wrap(~category) +
-  ggtitle("Energy against count histogram for study and party music")
-```
-
-***
-**Energy against count histogram for party and study music**
-
-The difference in energy distribution between party and study music is very well shown in this histogram. Study music its energy has a bigger distribution on the lower side of the enrgy, where the party music has its bigger distribution on the higher energy side. The most common count for party music, is almost the least common count for study music and vice versa. 
-
-
-### Energy and valence distribution for party and study music features
+#### Chromagram For "Get you to the moon" By Kina and Snøw
 
 
 ```{r , echo=FALSE}
 
-music |>                    # Start with awards.
-  mutate(
-    mode = ifelse(mode == 0, "Minor", "Major")
-  ) |>
-  ggplot(                     # Set up the plot.
-    aes(
-      x = valence,
-      y = energy,
-      size = loudness,
-      colour = mode
-    )
-  ) +
-  geom_point() +              # Scatter plot.
-  geom_rug(linewidth = 0.1) + # Add 'fringes' to show data distribution.
-  geom_text(                  # Add text labels from above.
-    aes(
-      x = valence,
-      y = energy,
-      label = label
-    ),
-    data = 
-      tibble(
-        label = c("calm", "busy"),
-        category = c("Study Music Features", "Party Music Features"),
-        valence = c(0.090, 0.123),
-        energy = c(0.101, 0.967)
-      ),
-    colour = "black",         # Override colour (not mode here).
-    size = 3,                 # Override size (not loudness here).
-    hjust = "left",           # Align left side of label with the point.
-    vjust = "bottom",         # Align bottom of label with the point.
-    nudge_x = -0.05,          # Nudge the label slightly left.
-    nudge_y = 0.02            # Nudge the label slightly up.
-  ) +
-  facet_wrap(~ category) +    # Separate charts per playlist.
-  scale_x_continuous(         # Fine-tune the x axis.
-    limits = c(0, 1),
-    breaks = c(0, 0.50, 1),   # Use grid-lines for quadrants only.
-    minor_breaks = NULL       # Remove 'minor' grid-lines.
-  ) +
-  scale_y_continuous(         # Fine-tune the y axis in the same way.
-    limits = c(0, 1),
-    breaks = c(0, 0.50, 1),
-    minor_breaks = NULL
-  ) +
-  scale_colour_brewer(        # Use the Color Brewer to choose a palette.
-    type = "qual",            # Qualitative set.
-    palette = "Paired"        # Name of the palette is 'Paired'.
-  ) +
-  scale_size_continuous(      # Fine-tune the sizes of each point.
-    trans = "exp",            # Use an exp transformation to emphasise loud.
-    guide = "none"            # Remove the legend for size.
-  ) +
-  theme_light() +             # Use a simpler theme.
-  labs(                       # Make the titles nice.
-    x = "Valence",
-    y = "Energy",
-    colour = "Mode",
-    title = "Energy and valence for party and study music"
-  )
-
-```
-
-***
-**Energy and valence distribution for party and study music**
-
-As expected, for the party music the energy level is concentrated higher than for study music. Also, the party music is more concentrated towards the higher valence side, and the study music is more concentrated towards the lower valence side. This makes sense, because most study music are slow songs, and slow songs are often linked to sad songs. Low valence songs indicate more towards sadness, where high valence songs indicate more towards happiness. Study music has more majors in its plot, and party music has more minors in its plot. Something that is interesting to see is that party music includes more minors, which also seem to be slightly bigger, and study music includes more majors, which seem to be slighty smaller. Minors have more darker sounds, and majors have more of brighter sounds. The reason for party music including more minors, is that the darker sounds can imply to a swingy rhythm/energy, which would not exactly make you think of party music but it offers a contrast in the music, which is often found in party music. 
-
-### Interactive energy and valence distribution
-
-```{r, echo=FALSE}
-partymusic <- get_playlist_audio_features("", "4aY6uMZsFEtbxJIAoJItnt?si=1eeb0bcc4af247ad")
-studymusic <- get_playlist_audio_features("", "663NfS5wple5xvRUy0aj7s?si=a4503edff29941e1")
-corpus <-
-  partymusic |>
-  mutate(country = "Party Music") |>
-  bind_rows(studymusic |> mutate(country = "Study Music")) |>
-  mutate(
-    country = fct_relevel(country, "Study Music", "Party Music")
-  )
-plot <-
-  corpus |>
-  ggplot(                          # Set up the plot.
-    aes(
-      x = valence,
-      y = energy,
-      size = track.popularity,
-      colour = danceability,
-      label = track.name           # Labels will be interactively visible.
-    )
-  ) +
-  geom_point() +                   # Scatter plot.
-  geom_rug(size = 0.1) +           # Add 'fringes' to show data distribution.
-  facet_wrap(~country) +           # Separate charts per country.
-  scale_x_continuous(              # Fine-tune the x axis.
-    limits = c(0, 1),
-    breaks = c(0, 0.50, 1),        # Use grid-lines for quadrants only.
-    minor_breaks = NULL            # Remove 'minor' grid-lines.
-  ) +
-  scale_y_continuous(              # Fine-tune the y axis in the same way.
-    limits = c(0, 1),
-    breaks = c(0, 0.50, 1),
-    minor_breaks = NULL
-  ) +
-  scale_colour_viridis_c(          # Use the cividis palette
-    option = "E",                  # Qualitative set.
-    alpha = 0.8,                   # Include some transparency
-    guide = "none"
-  ) +
-  scale_size_continuous(           # Fine-tune the sizes of each point.
-    guide = "none"                 # Remove the legend for size.
-  ) +
-  theme_light() +                  # Use a simpler theme.
-  labs(                            # Make the titles nice.
-    x = "Valence",
-    y = "Energy",
-    title = "Energy and valence for party and study music"
-  )
-ggplotly(plot)
-```
-
-***
-**Energy and valence for party and study music**
-
-As expected, for the party music the energy level is concentrated higher than for study music. Also, the party music is more concentrated towards the higher valence side, and the study music is more concentrated towards the lower valence side. This makes sense, because most study music are slow songs, and slow songs are often linked to sad songs. This is an interactive plot, when hovering over the plot, in addition to the energy and valence, also the track popularity, the track name and danceability are shown. 
-
-### Chromagram for the party music outlier
-
-
-```{r , echo=FALSE}
 music <-
   get_tidy_audio_analysis("4ZLzoOkj0MPWrTLvooIuaa?si=100d76873adf4534") |>
   select(segments) |>
   unnest(segments) |>
   select(start, duration, pitches)
+
 
 music |>
   mutate(pitches = map(pitches, compmus_normalise, "euclidean")) |>
@@ -799,21 +643,21 @@ music |>
       y = pitch_class,
       fill = value
     )
-  ) + ggtitle("Chromagram for 'Get you to the moon -  Kina and Snøw'") + 
+  ) +
   geom_tile() +
   labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
   theme_minimal() +
   scale_fill_viridis_c()
+
 ```
 
 ***
-**Chromagram for the party music outlier**
+**Chromagram For "Get you to the moon" By Kina and Snøw**
 
-This is the chromagram for the outlier from the party music playlist. I used the song from the study music playlist, and chose the song "Get You The Moon" by Kina and Snøw. This song starts very slow and monotonous. It only has a few sounds on the piano. From around 80 seconds until around 110 seconds, this changes, and more of the piano jumps in. From around 145 seconds these jump in again until the end. All of this is perceptible in the chromagram, because around these periods D pitches have a higher magnitude than over the rest of the song. 
+I used the song from the study music playlist for this chromagram, and chose the song "Get You The Moon" by Kina and Snøw. This song starts very slow and monotonous. It only has a few sounds on the piano. From around 80 seconds until around 110 seconds, this changes, and more of the piano jumps in. From around 145 seconds these jump in again until the end. All of this is perceptible in the chromagram, because around these periods D pitches have a higher magnitude than over the rest of the song. A lot of the pitches seem to be unused, which is completely logical after listening to a song as the song is as mentioned before, very monotonous. 
 
 
-### Chromagram for the study music outlier
-
+#### Chromagram For 'Scream & Shout' By will.i.am and Britney Spears
 
 
 ```{r , echo=FALSE}
@@ -833,7 +677,7 @@ music |>
       y = pitch_class,
       fill = value
     )
-  ) + ggtitle("Chromagram for 'Scream & Shout by will.i.am and Britney Spears'") + 
+  ) + 
   geom_tile() +
   labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
   theme_minimal() +
@@ -841,235 +685,192 @@ music |>
 ```
 
 ***
-**Chromagram for the study music outlier**
+**Chromagram For 'Scream & Shout' By will.i.am and Britney Spearsr**
 
-This is the chromagram for the outlier from the study music playlist. I used the song from the party music playlist, and chose the song "Scream & Shout" by will.i.am and Britney Spears.
-
-
-### Ceptogram for the party music outlier
-
-```{r , echo=FALSE}
-
-music <-
-  get_tidy_audio_analysis("4ZLzoOkj0MPWrTLvooIuaa?si=100d76873adf4534") |> # Change URI.
-  compmus_align(bars, segments) |>                     # Change `bars`
-  select(bars) |>                                      #   in all three
-  unnest(bars) |>                                      #   of these lines.
-  mutate(
-    pitches =
-      map(segments,
-          compmus_summarise, pitches,
-          method = "rms", norm = "euclidean"              # Change summary & norm.
-      )
-  ) |>
-  mutate(
-    timbre =
-      map(segments,
-          compmus_summarise, timbre,
-          method = "rms", norm = "euclidean"              # Change summary & norm.
-      )
-  )
-
-music |>
-  compmus_gather_timbre() |>
-  ggplot(
-    aes(
-      x = start + duration / 2,
-      width = duration,
-      y = basis,
-      fill = value
-    )
-  ) +
-  geom_tile() + ggtitle("Ceptogram for 'Get you to the moon -  Kina and Snøw'") +
-  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
-  scale_fill_viridis_c() +                              
-  theme_classic()
-
-```
-
-***
-**Ceptogram for the party music outlier**
+I used a song from the party music playlist for this chromagram, and chose the song "Scream & Shout" by will.i.am and Britney Spears. This chromagram, seems to have a higher magnitude for multiple pitches through out the whole song. A lot of the pitches in the study song seem to be unused, but in the party song chromagram, much more pitches are used. This results in a chromagram for the party music song that has more going on than for the study music song.
 
 
-This is the ceptogram for the outlier from the party music playlist. Here again I used the same outlier as for the chromagram for party music. I used the song from the study music playlist, and chose the song "Get You The Moon" by Kina and Snøw. 
-
-
-### Ceptogram for the study music outlier
-
-
-```{r , echo=FALSE}
-music <-
-  get_tidy_audio_analysis("2iJuuzV8P9Yz0VSurttIV5?si=2f980a2d59604132") |> # Change URI.
-  compmus_align(bars, segments) |>                     # Change `bars`
-  select(bars) |>                                      #   in all three
-  unnest(bars) |>                                      #   of these lines.
-  mutate(
-    pitches =
-      map(segments,
-          compmus_summarise, pitches,
-          method = "rms", norm = "euclidean"              # Change summary & norm.
-      )
-  ) |>
-  mutate(
-    timbre =
-      map(segments,
-          compmus_summarise, timbre,
-          method = "rms", norm = "euclidean"              # Change summary & norm.
-      )
-  )
-
-music |>
-  compmus_gather_timbre() |>
-  ggplot(
-    aes(
-      x = start + duration / 2,
-      width = duration,
-      y = basis,
-      fill = value
-    )
-  ) +
-  geom_tile() + ggtitle("Ceptogram for 'Scream & Shout by will.i.am and Britney Spears'") + 
-  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
-  scale_fill_viridis_c() +                              
-  theme_classic()
-
-
-```
-
-***
-**Ceptogram for the study music outlier**
-
-This is the ceptogram for the outlier from the study music playlist. Here again, I have used the same outlier as for the chromagram for study music. I used the song from the party music playlist, and chose the song "Scream & Shout" by will.i.am and Britney Spears.
-
-### What is the structure of "Pon de Replay" by Rihanna?
-
-
-```{r, echo=FALSE}
-music <-
-  get_tidy_audio_analysis("4TsmezEQVSZNNPv5RJ65Ov?si=468bdbdd8e9143a1") |>
-  compmus_align(bars, segments) |>
-  select(bars) |>
-  unnest(bars) |>
-  mutate(
-    pitches =
-      map(segments,
-          compmus_summarise, pitches,
-          method = "acentre", norm = "manhattan"
-      )
-  ) |>
-  mutate(
-    timbre =
-      map(segments,
-          compmus_summarise, timbre,
-          method = "mean"
-      )
-  )
-bind_rows(
-  music |> 
-    compmus_self_similarity(pitches, "aitchison") |> 
-    mutate(d = d / max(d), type = "Chroma"),
-  music |> 
-    compmus_self_similarity(timbre, "euclidean") |> 
-    mutate(d = d / max(d), type = "Timbre")
-) |>
-  mutate() |> 
-  ggplot(
-    aes(
-      x = xstart + xduration / 2,
-      width = xduration,
-      y = ystart + yduration / 2,
-      height = yduration,
-      fill = d
-    )
-  ) + ggtitle("Chroma vs timber based matrices for 'Pon de Replay - Rihanna'") + 
-  geom_tile() +
-  coord_fixed() +
-  facet_wrap(~type) +
-  scale_fill_viridis_c(option = "E", guide = "none") +
-  theme_classic() + 
-  labs(x = "", y = "")
-```
-
-***
-**Structure for "Pon de Replay" by Rihanna**
-
-These two matrices are the chroma vs timber based matrices for "Pon de Replay" by Rihanna. The matrices illustrate pitch- and timbre-based self-similarity in this song. These are needed to understand the structure of the song.
-
-### What is the structure of Can't Lie" by Ali Gatie?
-
-```{r, echo=FALSE}
-music <-
-  get_tidy_audio_analysis("3cqPu20DGTGUoZtbJH2Dmi?si=d4edc4368dbe4402") |>
-  compmus_align(bars, segments) |>
-  select(bars) |>
-  unnest(bars) |>
-  mutate(
-    pitches =
-      map(segments,
-          compmus_summarise, pitches,
-          method = "acentre", norm = "manhattan"
-      )
-  ) |>
-  mutate(
-    timbre =
-      map(segments,
-          compmus_summarise, timbre,
-          method = "mean"
-      )
-  )
-bind_rows(
-  music |> 
-    compmus_self_similarity(pitches, "aitchison") |> 
-    mutate(d = d / max(d), type = "Chroma"),
-  music |> 
-    compmus_self_similarity(timbre, "euclidean") |> 
-    mutate(d = d / max(d), type = "Timbre")
-) |>
-  mutate() |> 
-  ggplot(
-    aes(
-      x = xstart + xduration / 2,
-      width = xduration,
-      y = ystart + yduration / 2,
-      height = yduration,
-      fill = d
-    )
-  ) + ggtitle("Chroma vs timber based matrices for 'Can't Lie - Ali Gatie'") + 
-  geom_tile() +
-  coord_fixed() +
-  facet_wrap(~type) +
-  scale_fill_viridis_c(option = "E", guide = "none") +
-  theme_classic() + 
-  labs(x = "", y = "")
-
-```
-
-***
-**Structure for "Can't Lie" by Ali Gatie**
-
-These two matrices are the chroma vs timber based matrices for "Can't lie" by Ali Gatie. Both of these matrices illustrate pitch- and timbre-based self-similarity in this song. These are needed to understand the structure of the song.
-
-Introduction {.storyboard}
+Temporal Features {.storyboard}
 =========================================
 
-### Introduction {data-commentary-width=600}
+### Histogram Of Tempi For Party Music And Study Music Features
 
-**Introduction**
+```{r, echo=FALSE}
+playlist_studymusic <- "663NfS5wple5xvRUy0aj7s?si=d0a2d31141e64d1f"
+playlist_partymusic <- "4aY6uMZsFEtbxJIAoJItnt?si=1b003f9614044890"
+studymusicfeatures <- get_playlist_audio_features("", playlist_studymusic)
+partymusicfeatures <- get_playlist_audio_features("", playlist_partymusic)
+music <-
+  bind_rows(
+    studymusicfeatures |> mutate(category = "Study Music Features"),
+    partymusicfeatures |> mutate(category = "Party Music Features")
+  )
 
-The corpus I have chosen includes two different playlists. One playlist is made to be a study playlist, that would include music that is supposed to let you have a great focus in order to be studying well. The other playlist would be a party playlist, one that is made for parties to increase people their energy. I chose it because I always try to use study playlists when I realize that I am having a bit of trouble trying to stay focused while studying. I want to find out through research whether there would be a measurable difference between the two different playlists. I think what is very interesting about this research, would be to find out what is the exact thing that makes you feel more focused, and what the exact thing is that increases your energy when listening to a party playlist.
-The comparison points in my corpus are that that the study playlist has more of instrumental and calm music, where the party playlist includes songs with much more energy, and much more intense instruments. I expect the two playlists to be somewhere similar, because in some way they are trying to increase something in the human brain (focus in playlist 1, and energy in playlist 2). Something I definitely do not expect similar in the two playlists is the sort of vibe the two playlists include. 
-There is definitely a well-known difference between the two playlists, because otherwise people would not use them. People usually use study playlists intentionally, knowing they want to increase their focus. Party playlists are usually used when people want to get in a party mood, or they will be used on a party itself. 
-As said earlier, what would be definitely typical about the study playlist is the instrumental aspect. Also, they would have rather 'calm' music that would not easily distract you from what you are trying to focus on. In a party playlist you will probably find less of those calm and bland songs. (Which obviously depends on the chosen playlist). The party playlist will have rather songs with more instruments, a high presence of a bass and even remixes.
+music |> 
+  ggplot(aes(x = tempo)) +
+  geom_histogram(bins = 20, fill="#360007") +
+  labs(x = "Tempo (BPM)", y="Count") +
+  facet_wrap(~category) +
+  ggtitle("Tempi For Party Music And Study Music Features")
+```
 
 ***
-<iframe src="https://open.spotify.com/embed/playlist/4aY6uMZsFEtbxJIAoJItnt?utm_source=generator" width="50%" height="100%" frameBorder="0" allowtransparency="true" allow="encrypted-media" data-external="1"></iframe>
+**Tempi For Party Music And Study Music features**
 
-<iframe src="https://open.spotify.com/embed/playlist/663NfS5wple5xvRUy0aj7s?utm_source=generator" width="50%" height="100%" frameBorder="0" allowtransparency="true" allow="encrypted-media" data-external="1"></iframe>
+The count for the party music lies much higher than for the study music. The party music is generally busier than the study music, so this is as expected. The tempo for the study music are distributed over a wider region than for the party music. For the study music the range is 25-215 BPM, but for the party music the range is 55-200 BPM. I also expected this, because usually for study music there is a wide variety of tempi in the songs, but also between the different songs. 
+
+### Tempograms
+
+#### Tempogram For 'Little Do You Know' By Alex & Sierra 
+
+
+```{r, echo=FALSE}
+tempo <- get_tidy_audio_analysis("1almCHdsfikRPfVB9VrEdT?si=df354dad1e3d4e12")
+tempo |>
+  tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) |>
+  ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(x = "Time (s)", y = "Tempo (BPM)") +
+  theme_classic()
+```
+
+***
+**Tempogram For 'Little Do You Know' By Alex & Sierra**
+
+With the use of onsets of every segment we are able to generate Fourier tempograms. This is a cyclic tempogram based on the piece "Little Do You Know" by Alex and Sierra. This song is one from the study music playlist. The tempogram is an attempt to use Spotify's API to analyse the tempo of this song. Analysing the tempogram, the tempo is estimated around a 150 BPM, with a few outliers. I expected the outliers, because the tempo of the song is definitely not consistent, as it changes noticeably. I did expect the BPM to lay higher. When comparing this tempogram to our next tempogram, the one for a party song, has a lower BPM. I would intuitively correlate a higher BPM with a busier song, but in this case it appears to not always have to be a busy song. It can also be a slow song, but with a lot of beats that lead to a high BPM. 
+
+#### Tempogram For "Beat It" By Michael Jackson
+
+```{r, echo=FALSE}
+tempo <- get_tidy_audio_analysis("1OOtq8tRnDM8kG2gqUPjAj?si=7ec6062afaec4eb1")
+tempo |>
+  tempogram(window_size = 8, hop_size = 1, cyclic = TRUE) |>
+  ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(x = "Time (s)", y = "Tempo (BPM)") + 
+  theme_classic()
+```
+
+***
+**Tempogram For "Beat It" By Michael Jackson**
+
+With the use of onsets of every segment we are able to generate Fourier tempograms. This cyclic chromagram is based on the song "Beat It" by Michael Jackson and is originally from the party music playlist. The tempogram is an attempt to use Spotify's API to analyse the tempo of this song. This song seems to have a strong estimation for the BPM, which is a ~140 BPM as it appears as a strong line. I definitely did expect a steady BPM, since throughout the song I consistently sense the same tempo. I also expected the BPM to be a bit higher, maybe above the 160 BPM, because when I listen to the song I feel like there is a high tempo in it. 
+
+
+
+Classification {.storyboard}
+=========================================
+
+### Classification Party And Study Music
+
+```{r, echo=FALSE}
+party <- get_playlist_audio_features("spotify", "4aY6uMZsFEtbxJIAoJItnt?si=1b003f9614044890")
+study <- get_playlist_audio_features("spotify", "663NfS5wple5xvRUy0aj7s?si=d0a2d31141e64d1f")
+music <-
+  bind_rows(
+    party |> mutate(playlist = "Party Music") |> slice_head(n = 100),
+    study |> mutate(playlist = "Study Music") |> slice_head(n = 100),
+  ) |> 
+  add_audio_analysis()
+
+music_features <-
+  music |>  # For your portfolio, change this to the name of your corpus.
+  mutate(
+    playlist = factor(playlist),
+    segments = map2(segments, key, compmus_c_transpose),
+    pitches =
+      map(
+        segments,
+        compmus_summarise, pitches,
+        method = "mean", norm = "manhattan"
+      ),
+    timbre =
+      map(
+        segments,
+        compmus_summarise, timbre,
+        method = "mean",
+      )
+  ) |>
+  mutate(pitches = map(pitches, compmus_normalise, "clr")) |>
+  mutate_at(vars(pitches, timbre), map, bind_rows) |>
+  unnest(cols = c(pitches, timbre))
+
+music_recipe <-
+  recipe(
+    playlist ~
+      danceability +
+      energy +
+      loudness +
+      speechiness +
+      acousticness +
+      instrumentalness +
+      liveness +
+      valence +
+      tempo +
+      duration +
+      C + `C#|Db` + D + `D#|Eb` +
+      E + `F` + `F#|Gb` + G +
+      `G#|Ab` + A + `A#|Bb` + B +
+      c01 + c02 + c03 + c04 + c05 + c06 +
+      c07 + c08 + c09 + c10 + c11 + c12,
+    data = music_features           # Use the same name as the previous block.
+  ) |>
+  step_center(all_predictors()) |>
+  step_scale(all_predictors())      # Converts to z-scores.
+  # step_range(all_predictors())    # Sets range to [0, 1].
+
+music_cv <- music_features |> vfold_cv(5)
+
+knn_model <-
+  nearest_neighbor(neighbors = 1) |>
+  set_mode("classification") |> 
+  set_engine("kknn")
+music_knn <- 
+  workflow() |> 
+  add_recipe(music_recipe) |> 
+  add_model(knn_model) |> 
+  fit_resamples(music_cv, control = control_resamples(save_pred = TRUE))
+
+get_conf_mat <- function(fit) {
+  outcome <- .get_tune_outcome_names(fit)
+  fit |> 
+    collect_predictions() |> 
+    conf_mat(truth = outcome, estimate = .pred_class)
+}  
+
+
+music_knn |> get_conf_mat() |> autoplot(type = "heatmap")
+
+```
+
+***
+**Classification Party And Study Music**
+
+As my research in this portfolio is to find the differences in study and party music, seeing a classification in the two playlists in my corpus can help with clarifications. As seen in the heatmap plot, the distinction made between study and party music is made very clear. Even though both of the playlists seem to predicted be in the right and truthful playlist, it seems that there are a few study music songs that are being seen as party music, and vice versa. This is not too shocking, because it is also kind of a subjective matter whether a song is being seen as a study/party song. The tempo in a certain study song can give one person the feeling of a party song, but also vice versa. The tempo of a party song can sometimes help a certain person focus while studying. 
+
+Conclusion {.storyboard}
+=========================================
 
 ### Conclusion
 
 ##### Conclusion
 
-### Discussion
+Throughout the portfolio we have seen a lot of differences between party and study music, but to my surprise there have been more similarities between them than I expected. The research of my portfolio is to point out what makes a study playlist different from a party playlist. Let's put them all together. 
 
-#### Discussion
+As I definitely did expect, for the party music the energy level is averagely higher than for study music. Nevertheless, there is some overlap between the two energy levels. This overlap is not too big tho, and is coming more from the study music side. This is understandable, because a study song can have more energy which could help you to focus.
+
+We also saw that for the party music the valence is more concentrated towards the higher valence side, and the study music is more concentrated towards the lower valence side. This makes sense, because most study music are slow songs, and slow songs are often linked to sad songs. Here there was some overlap as well between the two playlists. We also saw that party music include more minors and study music includes more majors. Minors have more darker sounds, and majors have more of brighter sounds. The reason for party music including more minors, is that the darker sounds can imply to a swingy rhythm/energy, which would not exactly make you think of party music, but it offers a contrast in the music, which is often found in party music.
+
+When hovering over the plot, and comparing the differences in danceability for the two playlists, the difference is noticeable. The danceability for study music varies a lot. The track “Lost Without You” has a danceability of 0.7, while the track “To Build A Home” has one of 0.3. Most study tracks vary between a danceability of 0.3 and 0.7, while most party tracks vary between a danceability of 0.4 and 0.99.
+
+For a study song, we have seen that the the chroma-based matrix structure seems to have lower degree of similarity of pitches between the compared pieces of music compared to the chroma-based matrix structure for a party song. The results for the timbre-based matrix structure for the party and the study song seemed to be alike in including clusters rather than patterns. 
+
+We have seen for chromagrams, that the difference in used pitch classes can differ a lot between study and party songs. A lot of the pitches in the study song seem to be unused, but in the party song chromagram, much more pitches are used. The reason for this, is because many study songs have more of a monotonous style, and are using less keys with a lower intensity because of this. On the contrary, party songs usually have more variations in their pitch classes, with a higher intensity as well. 
+
+For the study music playlist we have seen that the range is 25-215 BPM, but for the party music the range is 55-200 BPM. I did expect this result, because usually for study music there is a wide variety of tempi in the songs themselves, but also between the different songs. 
+
+Lastly, we have seen that even though both of the playlists seem to predicted be in the right and truthful playlist during classification, it seems that there are a few study music songs that are being seen as party music, and vice versa. This is not too shocking, because it is also kind of a subjective matter whether a song is being seen as a study/party song.
+
+
